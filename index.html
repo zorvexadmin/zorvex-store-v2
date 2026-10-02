@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zorvex Store | Worldwide Store</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    brand: { 50:'#eff6ff',100:'#dbeafe',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8' }
+  }, fontFamily: { sans: ['Inter','sans-serif'] } } } }
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body{font-family:'Inter',sans-serif;padding-bottom:40px}
+  .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .line-clamp-3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .fade-in{animation:fadeIn .25s ease-out}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .slide-up{animation:slideUp .3s ease-out}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .skel{animation:skel 1.4s ease-in-out infinite}
+  @keyframes skel{0%,100%{opacity:.6}50%{opacity:.3}}
+  .notranslate{unicode-bidi:normal}
+  #productGrid > * {min-width:0}
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<div class="bg-slate-900 text-white text-xs py-2 px-3 flex flex-wrap gap-2 justify-between items-center">
+  <span class="flex items-center gap-1.5 truncate">
+    <i class="fa-solid fa-globe text-blue-400"></i>
+    <span id="topbarTagline" class="truncate">Worldwide Express Delivery</span>
+  </span>
+  <div class="flex items-center gap-2 shrink-0">
+    <select id="shipCountry" class="bg-slate-800 text-white text-[11px] rounded-lg px-2 py-1 outline-none border border-slate-700">
+      <option value="BD">🇧🇩 BD</option>
+      <option value="US">🇺🇸 US</option>
+      <option value="UK">🇬🇧 UK</option>
+      <option value="IN">🇮🇳 IN</option>
+      <option value="AE">🇦🇪 AE</option>
+      <option value="CA">🇨🇦 CA</option>
+      <option value="AU">🇦🇺 AU</option>
+      <option value="SA">🇸🇦 SA</option>
+      <option value="MY">🇲🇾 MY</option>
+      <option value="SG">🇸🇬 SG</option>
+    </select>
+    <select id="currency" class="bg-slate-800 text-white text-[11px] rounded-lg px-2 py-1 outline-none border border-slate-700">
+      <option value="USD">$ USD</option>
+      <option value="BDT" selected>৳ BDT</option>
+      <option value="INR">₹ INR</option>
+      <option value="EUR">€ EUR</option>
+      <option value="GBP">£ GBP</option>
+      <option value="CAD">CA$ CAD</option>
+      <option value="AUD">A$ AUD</option>
+      <option value="AED">د.إ AED</option>
+      <option value="SAR">﷼ SAR</option>
+      <option value="MYR">RM MYR</option>
+    </select>
+  </div>
+</div>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-3 py-3 flex items-center gap-2">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2 font-black text-lg text-slate-900 cursor-pointer shrink-0" onclick="resetSearch()">
+      <div class="w-9 h-9 bg-blue-600 rounded-xl text-white flex items-center justify-center text-sm">
+        <i class="fa-solid fa-earth-americas"></i>
+      </div>
+      <span class="hidden sm:inline">Zorvex <span class="text-blue-600 text-xs font-bold">Store</span></span>
+    </div>
+
+    <!-- Desktop Search -->
+    <div class="flex-1 max-w-2xl hidden md:block relative">
+      <input id="searchInput" oninput="onSearch(this.value)" onfocus="showSearchHistory('searchHistory')" placeholder="Search products..." class="notranslate w-full pl-10 pr-20 py-2.5 rounded-xl bg-slate-100 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+      <div class="absolute right-2 top-1.5 flex gap-0.5">
+        <button type="button" onclick="startVoiceSearch('searchInput')" class="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-600 flex items-center justify-center" title="Voice search">
+          <i class="fa-solid fa-microphone text-xs"></i>
+        </button>
+        <button type="button" onclick="openQRScanner()" class="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-600 flex items-center justify-center" title="Scan barcode/QR">
+          <i class="fa-solid fa-qrcode text-xs"></i>
+        </button>
+      </div>
+      <div id="searchHistory" class="hidden absolute left-0 right-0 top-14 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-40 max-h-80 overflow-y-auto"></div>
+    </div>
+
+    <!-- Right Side Icons -->
+    <div class="flex items-center gap-2 ml-auto shrink-0">
+
+      <!-- Language (small, top) -->
+      <button id="langBtn" onclick="toggleLangMenu()" class="hidden sm:flex text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-2 rounded-xl items-center gap-1">
+        <i class="fa-solid fa-language"></i>
+        <span id="langLabel">EN</span>
+      </button>
+
+      <!-- Notifications -->
+      <button id="notifBtn" onclick="openNotifications()" class="relative text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-2 rounded-xl" title="Notifications">
+        <i class="fa-solid fa-bell"></i>
+        <span id="notifCount" class="hidden absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">0</span>
+      </button>
+
+      <!-- Cart -->
+      <button onclick="openCart()" class="relative text-xs font-bold bg-slate-900 text-white px-3 py-2 rounded-xl" title="Cart">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span id="cartCount" class="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 text-[10px] flex items-center justify-center font-bold">0</span>
+      </button>
+
+      <!-- Profile -->
+      <div class="relative">
+        <button id="profileBtn" onclick="event.stopPropagation(); toggleProfileMenu()" class="text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-2 rounded-xl flex items-center gap-1.5" title="Account">
+          <img id="profileBtnAvatar" class="w-6 h-6 rounded-full object-cover hidden">
+          <i id="profileBtnIcon" class="fa-solid fa-user"></i>
+        </button>
+
+        <!-- Profile dropdown -->
+        <div id="profileMenu" class="hidden absolute -right-1 top-12 w-[calc(100vw-1.5rem)] max-w-[280px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50">
+          <div class="p-4 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+            <div class="flex items-center gap-3">
+              <img id="menuAvatar" class="w-12 h-12 rounded-full object-cover border-2 border-white/40 hidden">
+              <div id="menuAvatarInitial" class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center font-black text-lg">?</div>
+              <div class="flex-1 min-w-0">
+                <p id="menuName" class="font-bold text-sm truncate">User</p>
+                <p id="menuEmail" class="text-[11px] text-blue-100 truncate">—</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="py-1">
+            <button onclick="openProfileModal()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-user-pen text-blue-600 w-4 text-center"></i> <span>My Profile</span>
+            </button>
+            <button onclick="openCustomerDashboard()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-chart-pie text-blue-600 w-4 text-center"></i> <span>My Dashboard</span>
+            </button>
+            <button onclick="openOrdersModal()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-truck-fast text-blue-600 w-4 text-center"></i> <span>My Orders</span>
+            </button>
+            <button onclick="openReviewsModal()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-star text-blue-600 w-4 text-center"></i> <span>My Reviews</span>
+            </button>
+          </div>
+
+          <div class="border-t border-slate-100 py-1">
+            <button onclick="openRulesModal('customer')" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-scroll text-slate-600 w-4 text-center"></i> <span>Rules &amp; Guidelines</span>
+            </button>
+            <button onclick="openReferralModal()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-user-plus text-indigo-600 w-4 text-center"></i> <span>Refer &amp; Earn</span>
+            </button>
+            <button onclick="openAffiliateModal()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-handshake text-orange-600 w-4 text-center"></i> <span>Affiliate Program</span>
+            </button>
+          </div>
+
+          <div class="border-t border-slate-100 py-1">
+            <button onclick="openSupportModal()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-headset text-slate-600 w-4 text-center"></i> <span>Help &amp; Support</span>
+            </button>
+            <button onclick="openAboutModal()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-circle-info text-slate-600 w-4 text-center"></i> <span>About Zorvex</span>
+            </button>
+            <button id="sellerPanelLink" onclick="goToSellerPanel()" class="hidden w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-store text-emerald-600 w-4 text-center"></i> <span>Seller Panel</span>
+            </button>
+            <button id="becomeSellerBtn" onclick="openSellerFlow()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-50">
+              <i class="fa-solid fa-store text-slate-600 w-4 text-center"></i> <span>Become a Seller</span>
+            </button>
+          </div>
+
+          <div class="border-t border-slate-100 py-1">
+            <button onclick="signOutUser()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">
+              <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile search -->
+  <div class="md:hidden max-w-7xl mx-auto px-3 pb-3 relative">
+    <input id="searchInputMobile" oninput="onSearch(this.value)" onfocus="showSearchHistory('searchHistoryMobile')" placeholder="Search products..." class="notranslate w-full pl-10 pr-20 py-2.5 rounded-xl bg-slate-100 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+    <i class="fa-solid fa-magnifying-glass absolute left-6 top-3.5 text-slate-400 text-sm"></i>
+    <div class="absolute right-5 top-3 flex gap-0.5">
+      <button type="button" onclick="startVoiceSearch('searchInputMobile')" class="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-600 flex items-center justify-center" title="Voice search">
+        <i class="fa-solid fa-microphone text-xs"></i>
+      </button>
+      <button type="button" onclick="openQRScanner()" class="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-600 flex items-center justify-center" title="Scan barcode/QR">
+        <i class="fa-solid fa-qrcode text-xs"></i>
+      </button>
+    </div>
+    <div id="searchHistoryMobile" class="hidden absolute left-3 right-3 top-14 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-40 max-h-80 overflow-y-auto"></div>
+  </div>
+
+  <!-- Categories bar -->
+  <div id="categoryBar" class="max-w-7xl mx-auto px-3 pb-3 flex gap-2 overflow-x-auto text-xs font-semibold"></div>
+</header>
+
+<!-- ============================================================
+     MAIN — Product Grid
+     ============================================================ -->
+<main class="max-w-7xl mx-auto px-3 py-5">
+
+  <!-- Hero / featured hint -->
+  <div id="heroBanner" class="hidden md:flex mb-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white items-center justify-between">
+    <div>
+      <p class="text-[11px] font-bold opacity-80 uppercase tracking-wide">Welcome to</p>
+      <h2 class="text-2xl font-black">Zorvex Store</h2>
+      <p class="text-sm opacity-90 mt-1">Worldwide products delivered to your door</p>
+    </div>
+    <i class="fa-solid fa-earth-americas text-6xl opacity-20"></i>
+  </div>
+
+  <!-- Loading skeletons -->
+  <div id="loadingGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-3">
+    <div class="bg-white rounded-2xl overflow-hidden"><div class="aspect-square bg-slate-200 skel"></div><div class="p-3 space-y-2"><div class="h-3 bg-slate-200 rounded skel"></div><div class="h-3 w-2/3 bg-slate-200 rounded skel"></div></div></div>
+    <div class="bg-white rounded-2xl overflow-hidden"><div class="aspect-square bg-slate-200 skel"></div><div class="p-3 space-y-2"><div class="h-3 bg-slate-200 rounded skel"></div><div class="h-3 w-2/3 bg-slate-200 rounded skel"></div></div></div>
+    <div class="bg-white rounded-2xl overflow-hidden"><div class="aspect-square bg-slate-200 skel"></div><div class="p-3 space-y-2"><div class="h-3 bg-slate-200 rounded skel"></div><div class="h-3 w-2/3 bg-slate-200 rounded skel"></div></div></div>
+    <div class="bg-white rounded-2xl overflow-hidden hidden sm:block"><div class="aspect-square bg-slate-200 skel"></div><div class="p-3 space-y-2"><div class="h-3 bg-slate-200 rounded skel"></div><div class="h-3 w-2/3 bg-slate-200 rounded skel"></div></div></div>
+  </div>
+
+  <div id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+
+  <p id="emptyMsg" class="hidden text-center text-slate-400 py-16 text-sm">No products found.</p>
+</main>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="mt-10 py-8 bg-slate-900 text-white/70 text-center text-xs">
+  <div class="flex items-center justify-center gap-2 mb-2">
+    <div class="w-7 h-7 bg-blue-600 rounded-lg text-white flex items-center justify-center text-xs">
+      <i class="fa-solid fa-earth-americas"></i>
+    </div>
+    <span class="font-black text-white">Zorvex</span>
+  </div>
+  <p class="notranslate">© 2026 Zorvex Store — All rights reserved</p>
+  <div class="flex items-center justify-center gap-3 mt-3">
+    <button onclick="openRulesModal('customer')" class="hover:text-white">Rules</button>
+    <span class="opacity-40">·</span>
+    <button onclick="openSupportModal()" class="hover:text-white">Support</button>
+    <span class="opacity-40">·</span>
+    <button onclick="openAboutModal()" class="hover:text-white">About</button>
+  </div>
+  </footer>
+  
+<!-- ============================================================
+     PRODUCT MODAL
+     ============================================================ -->
+<div id="productModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto">
+    <div class="flex justify-between items-center p-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
+      <h3 class="font-black text-base">Product Details</h3>
+      <button onclick="closeModal('productModal')" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-4 p-4">
+      <div>
+        <div class="relative">
+          <img id="pImg" class="w-full aspect-square object-cover rounded-xl bg-slate-100">
+          <span id="pDiscountBadge" class="hidden absolute top-2 right-2 bg-red-600 text-white text-[11px] font-bold px-2 py-1 rounded-lg shadow"></span>
+          <span id="pVideoBadge" class="hidden absolute bottom-2 left-2 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded-lg"><i class="fa-solid fa-play"></i> Video</span>
+        </div>
+        <div id="pVideoBox" class="hidden mt-3"></div>
+      </div>
+      <div>
+        <h2 id="pTitle" class="text-lg font-black mb-1 notranslate"></h2>
+        <div class="flex items-center gap-2 mb-2 flex-wrap">
+          <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot"></i> Ships from <span id="pCountry" class="notranslate"></span></p>
+          <span id="pTrustedBadge" class="hidden text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full cursor-pointer" onclick="showTrustedPopup(event)"><i class="fa-solid fa-circle-check"></i> Trusted</span>
+        </div>
+        <div class="flex items-center gap-2 mb-2 text-amber-400 text-sm">
+          <span id="pStars">★★★★★</span>
+          <span id="pRating" class="text-slate-700 font-bold">5.0</span>
+          <span id="pReviewCount" class="text-slate-400 text-xs">(0 reviews)</span>
+        </div>
+        <p id="pDesc" class="text-sm text-slate-600 mb-3"></p>
+        <div class="flex items-baseline gap-2 mb-3">
+          <span id="pPrice" class="text-2xl font-black text-blue-600 notranslate"></span>
+          <span id="pOldPrice" class="text-sm text-slate-400 line-through notranslate"></span>
+        </div>
+        <div id="pShippingBox" class="hidden bg-slate-50 rounded-xl p-3 mb-4"></div>
+        <div class="flex gap-2">
+          <button onclick="addToCart(currentProduct)" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs">
+            <i class="fa-solid fa-cart-plus"></i> Add to Cart
+          </button>
+          <button onclick="buyNow()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs">
+            <i class="fa-solid fa-bolt"></i> Buy Now
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="p-4 border-t border-slate-200">
+      <h4 class="font-black text-sm mb-3">Customer Reviews</h4>
+      <div id="reviewForm" class="hidden mb-4 space-y-2 bg-slate-50 rounded-xl p-3">
+        <p class="text-[11px] font-bold text-slate-500">Only verified buyers can review</p>
+        <div class="flex gap-2">
+          <select id="reviewRating" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs">
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★ (4)</option>
+            <option value="3">★★★ (3)</option>
+            <option value="2">★★ (2)</option>
+            <option value="1">★ (1)</option>
+          </select>
+          <input id="reviewComment" placeholder="Write your experience..." class="notranslate flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-xs">
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-[11px] font-bold text-slate-500 cursor-pointer flex items-center gap-1 bg-white border border-slate-300 px-2 py-1.5 rounded-lg">
+            <i class="fa-solid fa-camera"></i> Add Photos
+            <input id="reviewImages" type="file" accept="image/*" multiple class="hidden" onchange="handleReviewImages(event)">
+          </label>
+          <span id="reviewImageCount" class="text-[10px] text-slate-400"></span>
+          <button onclick="submitReview()" id="submitReviewBtn" class="ml-auto bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold">Post Review</button>
+        </div>
+        <div id="reviewImagePreview" class="flex gap-1.5 flex-wrap"></div>
+        <p class="text-[10px] text-amber-600"><i class="fa-solid fa-circle-info"></i> Reviews go through admin approval</p>
+      </div>
+      <div id="reviewsList" class="space-y-3 text-xs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TRUSTED POPUP (small floating)
+     ============================================================ -->
+<div id="trustedPopup" class="hidden fixed z-[60] pointer-events-none" style="max-width:280px">
+  <div class="bg-slate-900 text-white rounded-xl shadow-2xl p-4 text-xs slide-up">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
+        <i class="fa-solid fa-shield-halved text-sm"></i>
+      </div>
+      <div class="flex-1">
+        <p class="font-black text-sm mb-1">Trusted by Zorvex</p>
+        <div class="space-y-1 text-[11px] text-slate-300">
+          <p><i class="fa-solid fa-circle-check text-emerald-400"></i> Identity verified</p>
+          <p><i class="fa-solid fa-circle-check text-emerald-400"></i> 50+ successful orders</p>
+          <p><i class="fa-solid fa-circle-check text-emerald-400"></i> Member since <span id="trustedSince">2026</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     AUTH MODAL
+     ============================================================ -->
+<div id="authModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-sm w-full p-6 slide-up">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">Welcome to Zorvex</h3>
+      <button onclick="closeModal('authModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <button onclick="oauthLogin('google')" class="flex-1 border border-slate-300 rounded-xl py-2.5 text-xs font-bold hover:bg-slate-50">
+        <i class="fa-brands fa-google text-red-500"></i> Google
+      </button>
+      <button onclick="oauthLogin('facebook')" class="flex-1 border border-slate-300 rounded-xl py-2.5 text-xs font-bold hover:bg-slate-50">
+        <i class="fa-brands fa-facebook text-blue-600"></i> Facebook
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2 mb-4">
+      <div class="flex-1 h-px bg-slate-200"></div>
+      <span class="text-[10px] text-slate-400">or use email</span>
+      <div class="flex-1 h-px bg-slate-200"></div>
+    </div>
+
+    <form onsubmit="return emailAuth(event)" class="space-y-3">
+      <input id="authName" placeholder="Full Name (for sign up)" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+      <input id="authEmail" type="email" required placeholder="Email" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+      <input id="authPass" type="password" required minlength="6" placeholder="Password (min 6 chars)" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+      <div class="flex gap-2">
+        <button type="submit" id="signInBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs">Sign In</button>
+        <button type="button" onclick="emailSignup()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs">Sign Up</button>
+      </div>
+    </form>
+    <p id="authMsg" class="text-xs mt-3 text-center"></p>
+    <p class="text-[10px] text-slate-400 mt-3 text-center">By signing up you agree to our <button onclick="openRulesModal('customer')" class="text-blue-600 underline">Rules</button></p>
+  </div>
+</div>
+
+<!-- ============================================================
+     PROFILE MODAL
+     ============================================================ -->
+<div id="profileModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">My Profile</h3>
+      <button onclick="closeModal('profileModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="flex flex-col items-center mb-5">
+      <div class="relative">
+        <img id="profileBigAvatar" class="w-24 h-24 rounded-full object-cover bg-blue-600 hidden">
+        <div id="profileBigInitial" class="w-24 h-24 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-3xl">?</div>
+        <label for="avatarFileInput" class="absolute bottom-0 right-0 w-9 h-9 bg-slate-900 text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-slate-700">
+          <i class="fa-solid fa-camera text-sm"></i>
+        </label>
+        <input id="avatarFileInput" type="file" accept="image/*" class="hidden" onchange="handleAvatarPick(event)">
+      </div>
+      <p class="text-[11px] text-slate-400 mt-2">Tap camera to change photo</p>
+      <button id="removeAvatarBtn" onclick="removeAvatar()" class="text-[11px] text-red-500 mt-1 hidden">Remove Photo</button>
+      <p id="avatarStatus" class="text-[11px] mt-1"></p>
+      <span id="profileTrustedBadge" class="hidden mt-2 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full"><i class="fa-solid fa-circle-check"></i> Trusted Member</span>
+    </div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-slate-500">Full Name</label>
+        <input id="profileName" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Phone</label>
+        <input id="profilePhone" placeholder="+8801XXXXXXXXX" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Email</label>
+        <input id="profileEmail" readonly class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 bg-slate-100 text-slate-500">
+        <p class="text-[10px] text-slate-400 mt-1">Email cannot be changed (security)</p>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Preferred Language</label>
+        <select id="profileLang" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+          <option value="en">English</option>
+          <option value="bn">বাংলা</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ar">العربية</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="pt">Português</option>
+          <option value="ru">Русский</option>
+          <option value="zh-CN">中文</option>
+          <option value="ja">日本語</option>
+        </select>
+      </div>
+    </div>
+
+    <button onclick="saveProfile()" id="saveProfileBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-xs mt-5">
+      <i class="fa-solid fa-check"></i> Save Changes
+    </button>
+    <p id="profileMsg" class="text-xs text-center mt-2"></p>
+  </div>
+          </div>
+          
+<!-- ============================================================
+     CART DRAWER
+     ============================================================ -->
+<div id="cartDrawer" class="fixed inset-0 z-50 hidden bg-black/60 flex justify-end">
+  <div class="bg-white w-full max-w-md h-full flex flex-col slide-up">
+    <div class="flex justify-between items-center p-4 border-b border-slate-200">
+      <h3 class="font-black">Your Cart</h3>
+      <button onclick="closeModal('cartDrawer')" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="cartItems" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+    <div class="p-4 border-t border-slate-200 space-y-2 bg-slate-50">
+      <div class="flex gap-2">
+        <input id="cartCouponInput" placeholder="Coupon code" class="notranslate flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm uppercase font-mono bg-white">
+        <button onclick="applyCouponInCart()" id="applyCouponBtn" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 rounded-xl text-xs">Apply</button>
+      </div>
+      <p id="cartCouponMsg" class="text-[11px]"></p>
+      <div id="cartCouponApplied" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between">
+        <div class="text-xs"><b class="text-emerald-700 notranslate" id="cartCouponCode">—</b><span class="text-emerald-600" id="cartCouponAmount"></span></div>
+        <button onclick="removeCoupon()" class="text-red-500 text-xs"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="flex justify-between text-xs text-slate-500"><span>Subtotal</span><span id="cartSubtotal" class="notranslate">—</span></div>
+      <div id="cartDiscountRow" class="hidden flex justify-between text-xs text-emerald-600"><span>Coupon Discount</span><span id="cartDiscount" class="notranslate">—</span></div>
+      <div class="flex justify-between font-black text-sm pt-2 border-t border-slate-200"><span>Total</span><span id="cartTotal" class="text-blue-600 notranslate">—</span></div>
+      <button onclick="openCheckout()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-sm mt-2">
+        <i class="fa-solid fa-arrow-right"></i> Proceed to Checkout
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CHECKOUT MODAL
+     ============================================================ -->
+<div id="checkoutModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-5 slide-up">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">Checkout</h3>
+      <button onclick="closeModal('checkoutModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form onsubmit="return placeOrder(event)" class="space-y-3">
+      <input id="coName" required placeholder="Full Name" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+      <input id="coPhone" required placeholder="Phone (with country code)" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+      <textarea id="coAddress" required rows="2" placeholder="Full Delivery Address" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+
+      <!-- Shipping estimate box -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs">
+        <p class="font-bold text-blue-800 mb-1"><i class="fa-solid fa-truck"></i> Shipping to <span id="coCountryName" class="notranslate">Bangladesh</span></p>
+        <p class="text-blue-700">Delivery: <b id="coDeliveryTime" class="notranslate">2-4 days</b> · Shipping: <b id="coShippingCost" class="notranslate">—</b></p>
+      </div>
+
+      <!-- District dropdown (BD only) -->
+      <div id="coDistrictBox" class="hidden">
+        <label class="text-xs font-bold text-slate-500">Delivery District *</label>
+        <select id="coDistrict" onchange="onDistrictChange()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+          <option value="">Select district...</option>
+        </select>
+        <p class="text-[10px] text-slate-400 mt-1">COD charge varies by district</p>
+      </div>
+
+      <!-- Payment method -->
+      <div>
+        <label class="text-xs font-bold text-slate-500">Payment Method</label>
+        <select id="coPayment" onchange="togglePaymentInfo()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+        </select>
+        <p id="coPaymentNote" class="text-[10px] text-slate-400 mt-1"></p>
+      </div>
+
+      <!-- Manual payment box -->
+      <div id="manualPayBox" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs space-y-2">
+        <p>Send <b id="payAmount" class="notranslate">—</b> to <b id="payNumber" class="notranslate">—</b> and enter the Transaction ID below.</p>
+        <input id="coTxnId" placeholder="Transaction ID" class="notranslate w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+
+      <!-- Totals -->
+      <div class="space-y-1 pt-2 border-t border-slate-200">
+        <div class="flex justify-between text-xs text-slate-500"><span>Subtotal</span><span id="checkoutSubtotal" class="notranslate">—</span></div>
+        <div class="flex justify-between text-xs text-slate-500"><span>Shipping</span><span id="checkoutShipping" class="notranslate">—</span></div>
+        <div id="checkoutCodRow" class="hidden flex justify-between text-xs text-rose-600"><span>COD Charge</span><span id="checkoutCod" class="notranslate">—</span></div>
+        <div id="checkoutCouponRow" class="hidden flex justify-between text-xs text-emerald-600"><span>Coupon Discount</span><span id="checkoutDiscount" class="notranslate">—</span></div>
+        <div id="checkoutPrepaidRow" class="hidden flex justify-between text-xs text-emerald-600"><span>Prepaid Discount</span><span id="checkoutPrepaidDiscount" class="notranslate">—</span></div>
+      </div>
+
+      <div class="flex justify-between items-center font-black text-base pt-2 border-t border-slate-200">
+        <span>Total</span>
+        <div class="flex items-center gap-2">
+          <span id="checkoutPricingBadge" class="hidden"></span>
+          <span id="checkoutTotal" class="text-blue-600 notranslate">—</span>
+        </div>
+      </div>
+
+      <button type="submit" id="placeOrderBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-sm">
+        <i class="fa-solid fa-lock"></i> Place Order
+      </button>
+      <p class="text-[10px] text-slate-400 text-center">By placing this order you agree to our <button type="button" onclick="openRulesModal('customer')" class="text-blue-600 underline">Rules</button></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     SUCCESS MODAL
+     ============================================================ -->
+<div id="successModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center slide-up">
+    <i class="fa-solid fa-circle-check text-emerald-500 text-5xl mb-3"></i>
+    <h3 class="font-black text-lg mb-1">Order Placed!</h3>
+    <p class="text-xs text-slate-500 mb-4">Order ID: <span id="successOrderId" class="font-bold notranslate">—</span></p>
+    <p class="text-[11px] text-slate-500 mb-4">We will contact you soon to confirm delivery.</p>
+    <button onclick="closeModal('successModal'); openOrdersModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs mb-2">View My Orders</button>
+    <button onclick="closeModal('successModal')" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs">Continue Shopping</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MY ORDERS MODAL
+     ============================================================ -->
+<div id="ordersModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-5">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">My Orders</h3>
+      <button onclick="closeModal('ordersModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="ordersList" class="space-y-3 text-xs"><p class="text-center text-slate-400 py-8">Loading…</p></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MY REVIEWS MODAL
+     ============================================================ -->
+<div id="reviewsModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-5">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">My Reviews</h3>
+      <button onclick="closeModal('reviewsModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="myReviewsList" class="space-y-3 text-xs"><p class="text-center text-slate-400 py-8">Loading…</p></div>
+  </div>
+</div>
+<!-- ============================================================
+     SUPPORT MODAL
+     ============================================================ -->
+<div id="supportModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">Help &amp; Support</h3>
+      <button onclick="closeModal('supportModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <p class="text-sm text-slate-600 mb-4">Contact us for any issue — we usually reply within a few hours.</p>
+    <div id="contactLinksBox" class="space-y-2">
+      <p class="text-sm text-slate-400 text-center py-4">Loading…</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ABOUT MODAL
+     ============================================================ -->
+<div id="aboutModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">About Zorvex</h3>
+      <button onclick="closeModal('aboutModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-14 h-14 bg-blue-600 rounded-2xl text-white flex items-center justify-center text-2xl">
+        <i class="fa-solid fa-earth-americas"></i>
+      </div>
+      <div>
+        <p class="font-black text-xl">Zorvex Store</p>
+        <p class="text-[11px] text-slate-400">Worldwide Store</p>
+      </div>
+    </div>
+    <p class="text-sm text-slate-600 leading-relaxed mb-4">Zorvex is a worldwide online store where you can order products from anywhere in the world — delivered straight to your door. We connect buyers and sellers across the globe with trust and security.</p>
+    <div class="grid grid-cols-2 gap-2 text-xs mb-4">
+      <div class="bg-slate-50 p-3 rounded-xl"><i class="fa-solid fa-truck-fast text-blue-600"></i><p class="font-bold mt-1">Express Delivery</p><p class="text-[10px] text-slate-400">Worldwide shipping</p></div>
+      <div class="bg-slate-50 p-3 rounded-xl"><i class="fa-solid fa-shield-halved text-blue-600"></i><p class="font-bold mt-1">Secure</p><p class="text-[10px] text-slate-400">24/7 monitoring</p></div>
+      <div class="bg-slate-50 p-3 rounded-xl"><i class="fa-solid fa-headset text-blue-600"></i><p class="font-bold mt-1">24/7 Support</p><p class="text-[10px] text-slate-400">Always here</p></div>
+      <div class="bg-slate-50 p-3 rounded-xl"><i class="fa-solid fa-globe text-blue-600"></i><p class="font-bold mt-1">Worldwide</p><p class="text-[10px] text-slate-400">Every country</p></div>
+    </div>
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800">
+      <i class="fa-solid fa-shield-halved"></i> All activity is monitored 24/7 to keep our community safe.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     RULES MODAL
+     ============================================================ -->
+<div id="rulesModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-lg w-full max-h-[88vh] overflow-y-auto">
+    <div class="flex justify-between items-center p-5 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
+      <h3 class="font-black text-lg"><i class="fa-solid fa-scroll text-blue-600"></i> Rules &amp; Guidelines</h3>
+      <button onclick="closeModal('rulesModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="rulesContent" class="p-5 space-y-4 text-sm">
+      <p class="text-slate-400 text-center py-6">Loading…</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     REFERRAL MODAL
+     ============================================================ -->
+<div id="referralModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">Refer &amp; Earn</h3>
+      <button onclick="closeModal('referralModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl p-5 text-white text-center mb-4">
+      <i class="fa-solid fa-gift text-3xl mb-2"></i>
+      <p class="font-black text-lg">Earn <span id="referralReward" class="notranslate">$5</span> per friend</p>
+      <p class="text-xs text-indigo-100 mt-1">Share your code. When they complete their first order, you get rewarded.</p>
+    </div>
+
+    <div class="bg-slate-50 rounded-xl p-3 mb-3">
+      <p class="text-[11px] font-bold text-slate-500 mb-1">Your Referral Code</p>
+      <div class="flex gap-2">
+        <input id="referralCode" readonly class="notranslate flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono font-bold bg-white text-center">
+        <button onclick="copyReferralCode()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-lg text-xs"><i class="fa-solid fa-copy"></i></button>
+      </div>
+    </div>
+
+    <div class="bg-slate-50 rounded-xl p-3 mb-3">
+      <p class="text-[11px] font-bold text-slate-500 mb-1">Share Link</p>
+      <div class="flex gap-2">
+        <input id="referralLink" readonly class="notranslate flex-1 border border-slate-300 rounded-lg px-3 py-2 text-[11px] bg-white">
+        <button onclick="copyReferralLink()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-lg text-xs"><i class="fa-solid fa-copy"></i></button>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <a id="waReferral" target="_blank" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl text-xs text-center"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+      <a id="fbReferral" target="_blank" class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-2.5 rounded-xl text-xs text-center"><i class="fa-brands fa-facebook"></i> Facebook</a>
+      <a id="tgReferral" target="_blank" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl text-xs text-center"><i class="fa-brands fa-telegram"></i> Telegram</a>
+    </div>
+
+    <div class="border-t border-slate-200 pt-3">
+      <p class="text-[11px] font-bold text-slate-500 mb-2">Your Referrals</p>
+      <div id="referralStats" class="text-center text-xs text-slate-400 py-3">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     AFFILIATE MODAL
+     ============================================================ -->
+<div id="affiliateModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg">Affiliate Program</h3>
+      <button onclick="closeModal('affiliateModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div id="affiliateJoinView" class="space-y-3">
+      <div class="bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl p-5 text-white text-center">
+        <i class="fa-solid fa-handshake text-3xl mb-2"></i>
+        <p class="font-black text-lg">Earn Commission on Every Sale</p>
+        <p class="text-xs text-orange-100 mt-1">Get <span id="affiliateRate" class="notranslate">5%</span> commission on every order from your unique link</p>
+      </div>
+      <ul class="text-xs text-slate-600 space-y-1.5 bg-slate-50 rounded-xl p-3">
+        <li><i class="fa-solid fa-check text-emerald-500"></i> Unique affiliate code &amp; link</li>
+        <li><i class="fa-solid fa-check text-emerald-500"></i> Track clicks and sales</li>
+        <li><i class="fa-solid fa-check text-emerald-500"></i> Get paid for every order</li>
+        <li><i class="fa-solid fa-check text-emerald-500"></i> No investment needed</li>
+      </ul>
+      <button onclick="joinAffiliateProgram()" id="joinAffBtn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-3 rounded-xl text-sm">
+        <i class="fa-solid fa-plus"></i> Join Affiliate Program
+      </button>
+    </div>
+
+    <div id="affiliateDashView" class="hidden space-y-3">
+      <div class="bg-slate-50 rounded-xl p-3">
+        <p class="text-[11px] font-bold text-slate-500 mb-1">Your Affiliate Code</p>
+        <div class="flex gap-2">
+          <input id="affCode" readonly class="notranslate flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono font-bold bg-white text-center">
+          <button onclick="copyAffCode()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-2 rounded-lg text-xs"><i class="fa-solid fa-copy"></i></button>
+        </div>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-3">
+        <p class="text-[11px] font-bold text-slate-500 mb-1">Affiliate Link</p>
+        <div class="flex gap-2">
+          <input id="affLink" readonly class="notranslate flex-1 border border-slate-300 rounded-lg px-3 py-2 text-[11px] bg-white">
+          <button onclick="copyAffLink()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-2 rounded-lg text-xs"><i class="fa-solid fa-copy"></i></button>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-slate-50 rounded-xl p-3 text-center"><p id="affClicks" class="text-xl font-black text-orange-600 notranslate">0</p><p class="text-[10px] text-slate-500">Clicks</p></div>
+        <div class="bg-slate-50 rounded-xl p-3 text-center"><p id="affSales" class="text-xl font-black text-emerald-600 notranslate">$0</p><p class="text-[10px] text-slate-500">Sales</p></div>
+        <div class="bg-slate-50 rounded-xl p-3 text-center"><p id="affEarnings" class="text-xl font-black text-amber-600 notranslate">$0</p><p class="text-[10px] text-slate-500">Earned</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ============================================================
+     CUSTOMER DASHBOARD MODAL
+     ============================================================ -->
+<div id="customerDashboardModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto">
+    <div class="flex justify-between items-center p-5 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
+      <div>
+        <h3 class="font-black text-lg">My Dashboard</h3>
+        <p class="text-[11px] text-slate-500">Your complete Zorvex activity</p>
+      </div>
+      <button onclick="closeModal('customerDashboardModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Period filter -->
+    <div class="p-4 border-b border-slate-100">
+      <div class="flex gap-1">
+        <button data-cdperiod="weekly" class="cdperiod px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-blue-600 text-white">Weekly</button>
+        <button data-cdperiod="monthly" class="cdperiod px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-slate-100 text-slate-700">Monthly</button>
+        <button data-cdperiod="yearly" class="cdperiod px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-slate-100 text-slate-700">Yearly</button>
+        <button data-cdperiod="all" class="cdperiod px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-slate-100 text-slate-700">All Time</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="cdLoading" class="text-center text-slate-400 py-10 text-sm">Loading…</div>
+
+    <!-- Content -->
+    <div id="cdContent" class="hidden p-5 space-y-5">
+
+      <!-- Membership info -->
+      <div class="bg-gradient-to-br from-blue-500 to-indigo-700 rounded-2xl p-4 text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-xl font-black" id="cdInitial">?</div>
+          <div class="flex-1 min-w-0">
+            <p class="font-black text-base truncate" id="cdName">User</p>
+            <p class="text-[11px] text-blue-100">Member for <b id="cdDaysWith" class="notranslate">0</b> days</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div class="bg-white rounded-xl p-3 border border-slate-200">
+          <i class="fa-solid fa-cart-shopping text-blue-600 text-sm"></i>
+          <p id="cdTotalOrders" class="text-xl font-black mt-1 notranslate">—</p>
+          <p class="text-[10px] text-slate-500">Total Orders</p>
+        </div>
+        <div class="bg-white rounded-xl p-3 border border-slate-200">
+          <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+          <p id="cdReceived" class="text-xl font-black mt-1 notranslate">—</p>
+          <p class="text-[10px] text-slate-500">Received</p>
+        </div>
+        <div class="bg-white rounded-xl p-3 border border-slate-200">
+          <i class="fa-solid fa-hourglass-half text-amber-600 text-sm"></i>
+          <p id="cdPending" class="text-xl font-black mt-1 notranslate">—</p>
+          <p class="text-[10px] text-slate-500">Pending</p>
+        </div>
+        <div class="bg-white rounded-xl p-3 border border-slate-200">
+          <i class="fa-solid fa-xmark text-red-600 text-sm"></i>
+          <p id="cdCancelled" class="text-xl font-black mt-1 notranslate">—</p>
+          <p class="text-[10px] text-slate-500">Cancelled</p>
+        </div>
+      </div>
+
+      <!-- Spending -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <p class="text-[10px] font-bold text-emerald-700 uppercase">Total Spent</p>
+          <p id="cdTotalSpent" class="text-lg font-black text-emerald-700 mt-1 notranslate">—</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3">
+          <p class="text-[10px] font-bold text-blue-700 uppercase">Received Value</p>
+          <p id="cdReceivedSpent" class="text-lg font-black text-blue-700 mt-1 notranslate">—</p>
+        </div>
+      </div>
+
+      <!-- Sellers ordered from -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4">
+        <h4 class="font-black text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-store text-orange-600"></i> Sellers You Ordered From</h4>
+        <div id="cdSellersList" class="space-y-1.5 text-xs">
+          <p class="text-slate-400">No orders yet.</p>
+        </div>
+      </div>
+
+      <!-- Orders list -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4">
+        <h4 class="font-black text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-receipt text-blue-600"></i> Recent Orders</h4>
+        <div id="cdOrdersList" class="space-y-2 text-xs">
+          <p class="text-slate-400">No orders yet.</p>
+        </div>
+      </div>
+
+      <!-- Report section -->
+      <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4">
+        <h4 class="font-black text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-flag text-rose-600"></i> Report a Seller</h4>
+        <p class="text-[11px] text-rose-700 mb-3">If a seller misbehaves, sends wrong product, or violates rules, report them with evidence.</p>
+        <button onclick="openReportModal('seller')" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-xs">
+          <i class="fa-solid fa-flag"></i> Report Seller
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     REPORT MODAL
+     ============================================================ -->
+<div id="reportModal" class="fixed inset-0 z-[60] hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-black text-lg"><i class="fa-solid fa-flag text-rose-600"></i> Submit Report</h3>
+      <button onclick="closeModal('reportModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-[11px] text-amber-800">
+      <i class="fa-solid fa-shield-halved"></i> <b>Important:</b> False reports may result in <b>permanent ban</b> of your account. Please provide accurate information with evidence.
+    </div>
+
+    <form onsubmit="return submitReportForm(event)" class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-slate-500">Report Type *</label>
+        <select id="reportType" required class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1">
+          <option value="">Select...</option>
+          <option value="fake_review">Fake Review</option>
+          <option value="cod_refused">Repeatedly Refused COD</option>
+          <option value="product_mismatch">Product Mismatch</option>
+          <option value="abusive">Abusive Behavior</option>
+          <option value="fraud">Fraud / Scam</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Related Order (optional)</label>
+        <input id="reportOrderId" placeholder="Order code" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Description *</label>
+        <textarea id="reportDescription" required rows="4" placeholder="Describe the issue in detail..." class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1"></textarea>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Evidence URL (optional)</label>
+        <input id="reportEvidenceUrl" placeholder="https://... (screenshot link)" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1">
+        <p class="text-[10px] text-slate-400 mt-1">Upload screenshots to imgbb.com and paste the link</p>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closeModal('reportModal')" class="flex-1 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs">Cancel</button>
+        <button type="submit" id="submitReportBtn" class="flex-[2] bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-xl text-xs">
+          <i class="fa-solid fa-flag"></i> Submit Report
+        </button>
+      </div>
+      <p id="reportMsg" class="text-xs text-center"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     NOTIFICATIONS PANEL
+     ============================================================ -->
+<div id="notifPanel" class="fixed inset-0 z-50 hidden bg-black/60 flex justify-end">
+  <div class="bg-white w-full max-w-md h-full flex flex-col slide-up">
+    <div class="flex justify-between items-center p-4 border-b border-slate-200">
+      <div>
+        <h3 class="font-black text-lg">Notifications</h3>
+        <p class="text-[11px] text-slate-500">Your recent activity</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="markAllRead()" class="text-[11px] font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded">Mark all read</button>
+        <button onclick="closeModal('notifPanel')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div id="notifList" class="flex-1 overflow-y-auto p-4 space-y-2">
+      <p class="text-center text-slate-400 py-8 text-sm">Loading…</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     QR SCANNER MODAL
+     ============================================================ -->
+<div id="qrScannerModal" class="fixed inset-0 z-[60] hidden bg-black/95 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+    <div class="flex justify-between items-center p-4 border-b">
+      <h3 class="font-bold text-sm">Scan Barcode / QR Code</h3>
+      <button onclick="closeQRScanner()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="qrReader" class="w-full bg-black"></div>
+    <p id="qrStatus" class="text-xs text-center p-3 text-slate-500">Point camera at a barcode or QR code…</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     KYC PHOTO VIEWER (used across pages)
+     ============================================================ -->
+<div id="kycPhotoModal" class="fixed inset-0 z-[100] hidden bg-black/95 flex items-center justify-center p-4" onclick="closeModal('kycPhotoModal')">
+  <img id="kycPhotoImg" class="max-w-full max-h-full rounded-lg">
+    </div>
+    
+<!-- ============================================================
+     SELLER KYC MODAL (Become a Seller)
+     ============================================================ -->
+<div id="sellerModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3">
+  <div class="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto">
+
+    <div class="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-10">
+      <div>
+        <h3 class="font-black text-lg">Become a Seller</h3>
+        <p class="text-[11px] text-slate-500">Complete KYC verification</p>
+      </div>
+      <button onclick="closeModal('sellerModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="px-4 pt-4">
+      <div class="flex items-center gap-1">
+        <div id="sellerStepDot1" class="flex-1 h-1.5 rounded bg-blue-600"></div>
+        <div id="sellerStepDot2" class="flex-1 h-1.5 rounded bg-slate-200"></div>
+        <div id="sellerStepDot3" class="flex-1 h-1.5 rounded bg-slate-200"></div>
+        <div id="sellerStepDot4" class="flex-1 h-1.5 rounded bg-slate-200"></div>
+      </div>
+      <p id="sellerStepLabel" class="text-[11px] text-slate-500 mt-2">Step 1 of 4 · Basic Information</p>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="sellerStep1" class="p-4 space-y-3">
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-[11px] text-blue-800">
+        <i class="fa-solid fa-info-circle"></i> Fill your identity details exactly as on your NID.
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Full Name (as on NID) *</label>
+        <input id="sk_full_name" placeholder="Your full name" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Phone Number *</label>
+        <input id="sk_phone" placeholder="+8801XXXXXXXXX" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Address</label>
+        <textarea id="sk_address" rows="2" placeholder="Your full address" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+      </div>
+      <p id="sellerStep1Msg" class="text-xs text-center"></p>
+      <button onclick="sellerNext(1)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-sm">
+        Continue <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="sellerStep2" class="p-4 space-y-3 hidden">
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-[11px] text-blue-800">
+        <i class="fa-solid fa-store"></i> Tell us about your shop or business.
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Shop Name *</label>
+        <input id="sk_shop_name" placeholder="e.g. Zorvex Electronics" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Shop Description</label>
+        <textarea id="sk_shop_desc" rows="2" placeholder="What will you sell?" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Business Type</label>
+        <select id="sk_business_type" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+          <option value="">Select</option>
+          <option value="individual">Individual</option>
+          <option value="shop">Physical Shop</option>
+          <option value="online">Online Business</option>
+          <option value="brand">Brand / Company</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Business Proof (Optional)</label>
+        <p class="text-[10px] text-slate-400 mb-1">Facebook page, Instagram, YouTube, TikTok or shop photo URL</p>
+        <input id="sk_business_proof" placeholder="https://facebook.com/yourpage" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <p id="sellerStep2Msg" class="text-xs text-center"></p>
+      <div class="flex gap-2">
+        <button onclick="sellerBack(1)" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-xl text-sm">Back</button>
+        <button onclick="sellerNext(2)" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-sm">Continue <i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- STEP 3 — KYC DOCUMENTS (6 photos) -->
+    <div id="sellerStep3" class="p-4 hidden">
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-[11px] text-amber-800">
+        <p class="font-bold mb-1"><i class="fa-solid fa-shield-halved"></i> KYC Verification</p>
+        <p>We need 6 photos to verify your identity. Your data is safe and only visible to admins. <b>No seller or customer can see it.</b></p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div onclick="openKycCamera('nid_front')" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-blue-500 transition">
+          <img id="thumb_nid_front" class="w-full aspect-square object-cover rounded-lg bg-slate-100 mb-2">
+          <p class="text-[10px] font-bold text-slate-600">NID Front</p>
+          <p class="text-[9px] text-slate-400">Tap to capture</p>
+        </div>
+        <div onclick="openKycCamera('nid_back')" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-blue-500 transition">
+          <img id="thumb_nid_back" class="w-full aspect-square object-cover rounded-lg bg-slate-100 mb-2">
+          <p class="text-[10px] font-bold text-slate-600">NID Back</p>
+          <p class="text-[9px] text-slate-400">Tap to capture</p>
+        </div>
+        <div onclick="openKycCamera('face_front')" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-blue-500 transition">
+          <img id="thumb_face_front" class="w-full aspect-square object-cover rounded-lg bg-slate-100 mb-2">
+          <p class="text-[10px] font-bold text-slate-600">Face — Front</p>
+          <p class="text-[9px] text-slate-400">Look at camera</p>
+        </div>
+        <div onclick="openKycCamera('face_left')" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-blue-500 transition">
+          <img id="thumb_face_left" class="w-full aspect-square object-cover rounded-lg bg-slate-100 mb-2">
+          <p class="text-[10px] font-bold text-slate-600">Face — Left</p>
+          <p class="text-[9px] text-slate-400">Turn head left</p>
+        </div>
+        <div onclick="openKycCamera('face_right')" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-blue-500 transition">
+          <img id="thumb_face_right" class="w-full aspect-square object-cover rounded-lg bg-slate-100 mb-2">
+          <p class="text-[10px] font-bold text-slate-600">Face — Right</p>
+          <p class="text-[9px] text-slate-400">Turn head right</p>
+        </div>
+        <div onclick="openKycCamera('selfie_nid')" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-blue-500 transition">
+          <img id="thumb_selfie_nid" class="w-full aspect-square object-cover rounded-lg bg-slate-100 mb-2">
+          <p class="text-[10px] font-bold text-slate-600">Selfie + NID</p>
+          <p class="text-[9px] text-slate-400">Hold NID beside face</p>
+        </div>
+      </div>
+
+      <p class="text-[10px] text-slate-500 mt-3 text-center">All 6 photos are required</p>
+      <p id="sellerStep3Msg" class="text-xs text-center mt-2"></p>
+      <div class="flex gap-2 mt-3">
+        <button onclick="sellerBack(2)" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-xl text-sm">Back</button>
+        <button onclick="sellerNext(3)" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-sm">Continue <i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- STEP 4 — REVIEW & SUBMIT -->
+    <div id="sellerStep4" class="p-4 hidden">
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
+        <p class="text-xs font-bold text-blue-800 mb-1"><i class="fa-solid fa-circle-check"></i> Almost Done!</p>
+        <p class="text-[11px] text-blue-700">Your information is ready. Please review before submitting.</p>
+      </div>
+      <div id="sellerReviewBox" class="space-y-2 text-xs bg-slate-50 rounded-xl p-3 mb-4"></div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800 mb-3">
+        <i class="fa-solid fa-shield-halved"></i> By submitting, you agree that all information is accurate. False info will result in permanent ban.
+      </div>
+      <p id="sellerStep4Msg" class="text-xs text-center"></p>
+      <div class="flex gap-2 mt-3">
+        <button onclick="sellerBack(3)" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-xl text-sm">Back</button>
+        <button id="sellerSubmitBtn" onclick="submitSellerApp()" class="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-sm">
+          <i class="fa-solid fa-paper-plane"></i> Submit Application
+        </button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="sellerSuccessBox" class="p-6 text-center hidden">
+      <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <i class="fa-solid fa-check text-emerald-600 text-2xl"></i>
+      </div>
+      <h3 class="font-black text-lg mb-1">Application Submitted!</h3>
+      <p class="text-xs text-slate-500 mb-4">We'll review your application within 24-48 hours. Once approved, you can start selling on Zorvex.</p>
+      <button onclick="closeModal('sellerModal')" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-sm">Got it</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     KYC CAMERA MODAL
+     ============================================================ -->
+<div id="kycCameraModal" class="fixed inset-0 z-[70] hidden bg-black flex flex-col">
+  <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+    <div>
+      <p class="text-[11px] text-slate-400 uppercase tracking-wide" id="kycStepIndicator">Step 1 of 6</p>
+      <h3 class="font-black" id="kycTitle">NID Front</h3>
+    </div>
+    <button onclick="closeKycCamera()" class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="flex-1 relative bg-black overflow-hidden flex items-center justify-center">
+    <video id="kycVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+    <!-- Guide frame -->
+    <div id="kycGuideFrame" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+      <div class="relative w-[80%] aspect-[16/10] border-2 border-blue-400 rounded-2xl" style="box-shadow:0 0 0 9999px rgba(0,0,0,0.6)">
+        <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-blue-400 rounded-tl-2xl"></div>
+        <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-blue-400 rounded-tr-2xl"></div>
+        <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-blue-400 rounded-bl-2xl"></div>
+        <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-blue-400 rounded-br-2xl"></div>
+      </div>
+    </div>
+
+    <p id="kycHint" class="absolute bottom-32 left-4 right-4 text-center text-white text-sm bg-black/60 backdrop-blur px-4 py-2 rounded-xl"></p>
+  </div>
+
+  <div class="bg-slate-900 p-5 pb-8">
+    <p id="kycError" class="text-red-400 text-xs text-center mb-3 hidden"></p>
+    <div class="flex items-center justify-center">
+      <button id="kycCaptureBtn" onclick="captureKycPhoto()" class="w-20 h-20 rounded-full bg-white border-4 border-slate-400 flex items-center justify-center active:scale-95 transition">
+        <div class="w-16 h-16 rounded-full bg-white border-2 border-slate-900"></div>
+      </button>
+    </div>
+    <p class="text-center text-[11px] text-slate-400 mt-3">Tap the button to capture</p>
+  </div>
+</div>
+  
