@@ -1150,3 +1150,1228 @@
   </div>
 </div>
   
+    <script>
+        // ==========================================
+        // GLOBAL STATE VARIABLES
+        // ==========================================
+        let currentUser = null;
+        let currentProfile = null;
+        let allProducts = [];
+        let cart = JSON.parse(localStorage.getItem('zorvex_cart')) || [];
+        let appliedCoupon = null;
+        let currentProduct = null;
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function formatPrice(usdAmount) {
+            const currency = localStorage.getItem('z_currency') || 'BDT';
+            const rate = window.zorvex.getRate(currency);
+            const symbol = window.zorvex.getSymbol(currency);
+            return symbol + (usdAmount * rate).toFixed(0);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 z-[100] px-4 py-2 rounded-lg text-white text-sm shadow-lg transition-opacity duration-300 ${type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        // ==========================================
+        // AUTHENTICATION UI
+        // ==========================================
+        function updateAuthUI() {
+            const menuName = document.getElementById('menuName');
+            const menuEmail = document.getElementById('menuEmail');
+            const menuAvatar = document.getElementById('menuAvatar');
+            const menuAvatarInitial = document.getElementById('menuAvatarInitial');
+            const profileBtnAvatar = document.getElementById('profileBtnAvatar');
+            const profileBtnIcon = document.getElementById('profileBtnIcon');
+            const sellerPanelLink = document.getElementById('sellerPanelLink');
+            const becomeSellerBtn = document.getElementById('becomeSellerBtn');
+
+            if (currentUser && currentProfile) {
+                menuName.textContent = currentProfile.full_name || 'User';
+                menuEmail.textContent = currentUser.email;
+                
+                if (currentProfile.profile_pic_url) {
+                    menuAvatar.src = currentProfile.profile_pic_url;
+                    menuAvatar.classList.remove('hidden');
+                    menuAvatarInitial.classList.add('hidden');
+                    profileBtnAvatar.src = currentProfile.profile_pic_url;
+                    profileBtnAvatar.classList.remove('hidden');
+                    profileBtnIcon.classList.add('hidden');
+                } else {
+                    menuAvatar.classList.add('hidden');
+                    menuAvatarInitial.classList.remove('hidden');
+                    menuAvatarInitial.textContent = (currentProfile.full_name || 'U')[0].toUpperCase();
+                    profileBtnAvatar.classList.add('hidden');
+                    profileBtnIcon.classList.remove('hidden');
+                }
+
+                const isSeller = currentProfile.role === 'seller';
+                const isAdmin = window.zorvex.adminRoles.includes(currentProfile.role);
+                
+                if (isSeller || isAdmin) {
+                    sellerPanelLink.classList.remove('hidden');
+                    becomeSellerBtn.classList.add('hidden');
+                } else {
+                    sellerPanelLink.classList.add('hidden');
+                    becomeSellerBtn.classList.remove('hidden');
+                }
+            } else {
+                menuName.textContent = 'Guest';
+                menuEmail.textContent = '';
+                menuAvatar.classList.add('hidden');
+                menuAvatarInitial.classList.add('hidden');
+                profileBtnAvatar.classList.add('hidden');
+                profileBtnIcon.classList.remove('hidden');
+                sellerPanelLink.classList.add('hidden');
+                becomeSellerBtn.classList.remove('hidden');
+            }
+        }
+
+        window.addEventListener('load', () => {
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if (session) {
+                    currentUser = session.user;
+                    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
+                    currentProfile = profile;
+                } else {
+                    currentUser = null;
+                    currentProfile = null;
+                }
+                updateAuthUI();
+            });
+        });
+
+        // ==========================================
+        // AUTHENTICATION FUNCTIONS
+        // ==========================================
+        async function handleAuth(type) {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPass').value;
+            const fullName = document.getElementById('authName').value.trim();
+            const msg = document.getElementById('authMsg');
+            msg.textContent = 'Processing...';
+            msg.className = 'text-xs mt-3 text-center text-blue-600';
+
+            try {
+                if (type === 'signup') {
+                    if (!fullName) throw new Error('Full name is required');
+                    const { error } = await supabaseClient.auth.signUp({
+                        email, password,
+                        options: { data: { full_name: fullName } }
+                    });
+                    if (error) throw error;
+                    msg.textContent = 'Check your email to confirm sign up!';
+                    msg.className = 'text-xs mt-3 text-center text-emerald-600';
+                } else {
+                    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    closeModal('authModal');
+                    showToast('Logged in successfully!');
+                }
+            } catch (err) {
+                msg.textContent = err.message;
+                msg.className = 'text-xs mt-3 text-center text-red-500';
+            }
+        }
+
+        async function oauthLogin(provider) {
+            try {
+                const { error } = await supabaseClient.auth.signInWithOAuth({ provider });
+                if (error) throw error;
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function signOutUser() {
+            await supabaseClient.auth.signOut();
+            showToast('Logged out');
+            setTimeout(() => window.location.reload(), 1000);
+        }
+
+        // ==========================================
+        // CURRENCY & SHIPPING
+        // ==========================================
+        function onCountryChange() {
+            const country = document.getElementById('shipCountry').value;
+            localStorage.setItem('z_country', country);
+            const autoCurrency = window.zorvex.countryCurrency[country] || 'USD';
+            localStorage.setItem('z_currency', autoCurrency);
+            document.getElementById('currency').value = autoCurrency;
+            if (typeof renderProducts === 'function') renderProducts();
+        }
+
+        function onCurrencyChange() {
+            const currency = document.getElementById('currency').value;
+            localStorage.setItem('z_currency', currency);
+            if (typeof renderProducts === 'function') renderProducts();
+        }
+
+        // ==========================================
+        // CART HELPERS
+        // ==========================================
+        function getCartTotalUsd() {
+            return cart.reduce((sum, item) => sum + (item.price_usd * item.qty), 0);
+        }
+
+        function updateCartCount() {
+            const count = cart.reduce((sum, item) => sum + item.qty, 0);
+            const badge = document.getElementById('cartCount');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // PAGE INITIALIZATION
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedCountry = localStorage.getItem('z_country') || 'BD';
+            const savedCurrency = localStorage.getItem('z_currency') || 'BDT';
+            const countryEl = document.getElementById('shipCountry');
+            const currencyEl = document.getElementById('currency');
+            
+            if (countryEl) {
+                countryEl.value = savedCountry;
+                countryEl.addEventListener('change', onCountryChange);
+            }
+            if (currencyEl) {
+                currencyEl.value = savedCurrency;
+                currencyEl.addEventListener('change', onCurrencyChange);
+            }
+
+            if (typeof loadProducts === 'function') loadProducts();
+            updateCartCount();
+        });
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.closeModal = closeModal;
+        window.openModal = openModal;
+        window.handleAuth = handleAuth;
+        window.oauthLogin = oauthLogin;
+        window.signOutUser = signOutUser;
+        window.onCountryChange = onCountryChange;
+        window.onCurrencyChange = onCurrencyChange;
+        window.updateCartCount = updateCartCount;
+        window.getCartTotalUsd = getCartTotalUsd;
+        window.formatPrice = formatPrice;
+    </script>
+        <script>
+        // ==========================================
+        // PRODUCT LOADING & RENDERING
+        // ==========================================
+        async function loadProducts() {
+            const grid = document.getElementById('productGrid');
+            const loading = document.getElementById('loadingGrid');
+            if (!grid) return;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('products')
+                    .select('*, categories(name)')
+                    .eq('is_active', true)
+                    .eq('is_approved', true)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                allProducts = data || [];
+                if (loading) loading.classList.add('hidden');
+                renderProducts();
+            } catch (e) {
+                console.error('Product load error:', e);
+                if (loading) loading.classList.add('hidden');
+                grid.innerHTML = '<p class="col-span-full text-center text-red-500 text-sm">Failed to load products.</p>';
+            }
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productGrid');
+            const empty = document.getElementById('emptyMsg');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            if (allProducts.length === 0) {
+                if (empty) empty.classList.remove('hidden');
+                return;
+            }
+            if (empty) empty.classList.add('hidden');
+
+            allProducts.forEach(p => {
+                const price = formatPrice(p.price_usd);
+                const oldPrice = p.old_price_usd ? `<span class="text-xs text-slate-400 line-through">${formatPrice(p.old_price_usd)}</span>` : '';
+                const img = p.image_url || 'https://placehold.co/400x400?text=No+Image';
+                const badge = p.display_discount_percent ? `<span class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">-${p.display_discount_percent}%</span>` : '';
+
+                grid.innerHTML += `
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition" onclick="openProduct('${p.id}')">
+                        <div class="relative aspect-square">
+                            <img src="${img}" class="w-full h-full object-cover" loading="lazy">
+                            ${badge}
+                        </div>
+                        <div class="p-3">
+                            <h3 class="text-xs font-semibold text-slate-800 line-clamp-2 h-8 notranslate">${p.title}</h3>
+                            <div class="mt-2 flex items-baseline gap-1.5">
+                                <span class="text-sm font-black text-blue-600 notranslate">${price}</span>
+                                ${oldPrice}
+                            </div>
+                            <div class="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
+                                <i class="fa-solid fa-star text-amber-400"></i> ${p.rating || '5.0'} (${p.reviews_count || 0})
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            if (typeof zEnforceNoTranslate === 'function') zEnforceNoTranslate();
+        }
+
+        // ==========================================
+        // PRODUCT MODAL
+        // ==========================================
+        function openProduct(id) {
+            const p = allProducts.find(x => x.id === id);
+            if (!p) return;
+            currentProduct = p;
+            
+            document.getElementById('pImg').src = p.image_url || 'https://placehold.co/400x400?text=No+Image';
+            document.getElementById('pTitle').textContent = p.title;
+            document.getElementById('pDesc').textContent = p.description || 'No description available.';
+            document.getElementById('pPrice').textContent = formatPrice(p.price_usd);
+            document.getElementById('pOldPrice').textContent = p.old_price_usd ? formatPrice(p.old_price_usd) : '';
+            document.getElementById('pCountry').textContent = p.origin_country || 'Global';
+            document.getElementById('pStars').textContent = '★'.repeat(Math.round(p.rating || 5));
+            document.getElementById('pRating').textContent = (p.rating || 5).toFixed(1);
+            document.getElementById('pReviewCount').textContent = `(${p.reviews_count || 0} reviews)`;
+            
+            const discountBadge = document.getElementById('pDiscountBadge');
+            if (p.display_discount_percent) { 
+                discountBadge.textContent = `-${p.display_discount_percent}%`; 
+                discountBadge.classList.remove('hidden'); 
+            } else { 
+                discountBadge.classList.add('hidden'); 
+            }
+
+            openModal('productModal');
+            if (typeof zEnforceNoTranslate === 'function') zEnforceNoTranslate();
+        }
+
+        // ==========================================
+        // CART OPERATIONS
+        // ==========================================
+        function addToCart(product) {
+            if (!product) return;
+            const existing = cart.find(x => x.id === product.id);
+            if (existing) { 
+                existing.qty += 1; 
+            } else { 
+                cart.push({ 
+                    id: product.id, 
+                    title: product.title, 
+                    price_usd: product.price_usd, 
+                    image_url: product.image_url, 
+                    qty: 1 
+                }); 
+            }
+            localStorage.setItem('zorvex_cart', JSON.stringify(cart));
+            updateCartCount();
+            showToast('Added to cart');
+        }
+
+        function buyNow() {
+            if (currentProduct) {
+                addToCart(currentProduct);
+                closeModal('productModal');
+                openCart();
+            }
+        }
+
+        function openCart() {
+            renderCart();
+            openModal('cartDrawer');
+        }
+
+        function renderCart() {
+            const box = document.getElementById('cartItems');
+            if (!box) return;
+            
+            if (cart.length === 0) {
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">Your cart is empty.</p>';
+                document.getElementById('cartSubtotal').textContent = formatPrice(0);
+                document.getElementById('cartTotal').textContent = formatPrice(0);
+                return;
+            }
+            
+            box.innerHTML = cart.map(item => `
+                <div class="flex items-center gap-3 py-3 border-b border-slate-100">
+                    <img src="${item.image_url || 'https://placehold.co/100x100'}" class="w-12 h-12 rounded object-cover">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold truncate notranslate">${item.title}</p>
+                        <p class="text-[10px] text-slate-500">Qty: ${item.qty} x ${formatPrice(item.price_usd)}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-bold text-blue-600 notranslate">${formatPrice(item.price_usd * item.qty)}</p>
+                        <button onclick="removeFromCart('${item.id}')" class="text-[10px] text-red-500 mt-1">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const subtotal = getCartTotalUsd();
+            document.getElementById('cartSubtotal').textContent = formatPrice(subtotal);
+            document.getElementById('cartTotal').textContent = formatPrice(subtotal);
+            if (typeof zEnforceNoTranslate === 'function') zEnforceNoTranslate();
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(x => x.id !== id);
+            localStorage.setItem('zorvex_cart', JSON.stringify(cart));
+            updateCartCount();
+            renderCart();
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadProducts = loadProducts;
+        window.renderProducts = renderProducts;
+        window.openProduct = openProduct;
+        window.addToCart = addToCart;
+        window.buyNow = buyNow;
+        window.openCart = openCart;
+        window.removeFromCart = removeFromCart;
+        </script>
+            <script>
+        // ==========================================
+        // CHECKOUT LOGIC
+        // ==========================================
+        function openCheckout() {
+            if (cart.length === 0) { 
+                showToast('Cart is empty', 'error'); 
+                return; 
+            }
+            closeModal('cartDrawer');
+            openModal('checkoutModal');
+            updateCheckoutTotals();
+        }
+
+        function updateCheckoutTotals() {
+            const subtotal = getCartTotalUsd();
+            const country = document.getElementById('shipCountry').value;
+            const district = document.getElementById('coDistrict')?.value || '';
+            
+            const shipping = window.zorvex.getShippingForCountry(country).cost_usd;
+            const codChargeUsd = window.zorvex.getCodChargeUsd(district);
+            const prepaidDiscount = window.zorvex.getTieredDiscountUsd(subtotal);
+            
+            document.getElementById('checkoutSubtotal').textContent = formatPrice(subtotal);
+            document.getElementById('checkoutShipping').textContent = formatPrice(shipping);
+            
+            const codRow = document.getElementById('checkoutCodRow');
+            if (country === 'BD' && district) { 
+                codRow.classList.remove('hidden'); 
+                document.getElementById('checkoutCod').textContent = formatPrice(codChargeUsd); 
+            } else { 
+                codRow.classList.add('hidden'); 
+            }
+
+            const prepaidRow = document.getElementById('checkoutPrepaidRow');
+            if (prepaidDiscount > 0) { 
+                prepaidRow.classList.remove('hidden'); 
+                document.getElementById('checkoutPrepaidDiscount').textContent = '-' + formatPrice(prepaidDiscount); 
+            } else { 
+                prepaidRow.classList.add('hidden'); 
+            }
+
+            const couponDiscount = appliedCoupon ? appliedCoupon.discount_usd : 0;
+            const total = subtotal + shipping + (country === 'BD' && district ? codChargeUsd : 0) - prepaidDiscount - couponDiscount;
+            document.getElementById('checkoutTotal').textContent = formatPrice(total);
+        }
+
+        function onDistrictChange() {
+            const d = document.getElementById('coDistrict').value;
+            const box = document.getElementById('coDistrictBox');
+            if (d && box) { 
+                box.classList.remove('hidden'); 
+            }
+            updateCheckoutTotals();
+        }
+
+        function togglePaymentInfo() {
+            const method = document.getElementById('coPayment').value;
+            const box = document.getElementById('manualPayBox');
+            if (!box) return;
+
+            if (method === 'cod') { 
+                box.classList.add('hidden'); 
+            } else { 
+                box.classList.remove('hidden'); 
+                document.getElementById('payNumber').textContent = method === 'bkash_manual' ? '017XXXXXXXX' : '018XXXXXXXX'; 
+            }
+            updateCheckoutTotals();
+        }
+
+        // ==========================================
+        // ORDER PLACEMENT
+        // ==========================================
+        async function placeOrder(e) {
+            e.preventDefault();
+            if (!currentUser) { 
+                showToast('Please sign in first', 'error'); 
+                openModal('authModal'); 
+                return; 
+            }
+            
+            const btn = document.getElementById('placeOrderBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true; 
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Placing...';
+            
+            try {
+                const subtotal = getCartTotalUsd();
+                const country = document.getElementById('shipCountry').value;
+                const district = document.getElementById('coDistrict')?.value || '';
+                const shipping = window.zorvex.getShippingForCountry(country).cost_usd;
+                const codChargeUsd = window.zorvex.getCodChargeUsd(district);
+                const prepaidDiscount = window.zorvex.getTieredDiscountUsd(subtotal);
+                const couponDiscount = appliedCoupon ? appliedCoupon.discount_usd : 0;
+                const total = subtotal + shipping + (country === 'BD' && district ? codChargeUsd : 0) - prepaidDiscount - couponDiscount;
+
+                const { data: order, error } = await supabaseClient
+                    .from('orders')
+                    .insert({
+                        customer_id: currentUser.id,
+                        full_name: document.getElementById('coName').value,
+                        phone: document.getElementById('coPhone').value,
+                        address: document.getElementById('coAddress').value,
+                        ship_country: country,
+                        ship_district: district,
+                        currency: localStorage.getItem('z_currency') || 'BDT',
+                        subtotal_usd: subtotal,
+                        shipping_usd: shipping,
+                        cod_charge_usd: codChargeUsd,
+                        prepaid_discount_usd: prepaidDiscount,
+                        total_usd: total,
+                        status: 'pending',
+                        payment_method: document.getElementById('coPayment').value,
+                        payment_txn_id: document.getElementById('coTxnId').value || null
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                const orderItems = cart.map(item => ({
+                    order_id: order.id,
+                    product_id: item.id,
+                    title_snapshot: item.title,
+                    image_snapshot: item.image_url,
+                    price_usd: item.price_usd,
+                    qty: item.qty
+                }));
+                
+                const { error: itemsError } = await supabaseClient.from('order_items').insert(orderItems);
+                if (itemsError) throw itemsError;
+
+                cart = []; 
+                localStorage.removeItem('zorvex_cart'); 
+                updateCartCount();
+                closeModal('checkoutModal');
+                
+                document.getElementById('successOrderId').textContent = order.order_code || order.id.substring(0, 8).toUpperCase();
+                openModal('successModal');
+                
+                if (window.zorvex && window.zorvex.logActivity) {
+                    window.zorvex.logActivity('order_placed', 'order', order.id, { total: total });
+                }
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false; 
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // ==========================================
+        // ORDER HISTORY
+        // ==========================================
+        async function openOrdersModal() {
+            openModal('ordersModal');
+            const box = document.getElementById('ordersList');
+            if (!box) return;
+            
+            box.innerHTML = '<p class="text-center text-slate-400 py-8">Loading...</p>';
+            if (!currentUser) { 
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">Sign in to view orders.</p>'; 
+                return; 
+            }
+            
+            const { data: orders, error } = await supabaseClient
+                .from('orders')
+                .select('*')
+                .eq('customer_id', currentUser.id)
+                .order('created_at', { ascending: false });
+                
+            if (error || !orders || orders.length === 0) { 
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">No orders yet.</p>'; 
+                return; 
+            }
+            
+            box.innerHTML = orders.map(o => `
+                <div class="border border-slate-200 rounded-xl p-3 mb-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-blue-600">#${o.order_code || o.id.substring(0,8)}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${o.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} uppercase">${o.status}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500">${new Date(o.created_at).toLocaleDateString()}</p>
+                    <p class="text-sm font-bold mt-1 notranslate">${formatPrice(o.total_usd)}</p>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.openCheckout = openCheckout;
+        window.updateCheckoutTotals = updateCheckoutTotals;
+        window.onDistrictChange = onDistrictChange;
+        window.togglePaymentInfo = togglePaymentInfo;
+        window.placeOrder = placeOrder;
+        window.openOrdersModal = openOrdersModal;
+            </script>
+
+      <script>
+
+        
+        // ==========================================
+        // PROFILE SETTINGS LOGIC
+        // ==========================================
+        let avatarFile = null;
+
+        function openProfileModal() {
+            if (!currentUser) { 
+                openModal('authModal'); 
+                return; 
+            }
+            document.getElementById('profileName').value = currentProfile?.full_name || '';
+            document.getElementById('profilePhone').value = currentProfile?.phone || '';
+            document.getElementById('profileEmail').value = currentUser.email;
+            
+            const avatar = document.getElementById('profileBigAvatar');
+            const initial = document.getElementById('profileBigInitial');
+            if (currentProfile?.profile_pic_url) {
+                avatar.src = currentProfile.profile_pic_url;
+                avatar.classList.remove('hidden');
+                initial.classList.add('hidden');
+            } else {
+                avatar.classList.add('hidden');
+                initial.classList.remove('hidden');
+                initial.textContent = (currentProfile?.full_name || 'U')[0].toUpperCase();
+            }
+            openModal('profileModal');
+        }
+
+        function handleAvatarPick(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            avatarFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('profileBigAvatar').src = e.target.result;
+                document.getElementById('profileBigAvatar').classList.remove('hidden');
+                document.getElementById('profileBigInitial').classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function saveProfile() {
+            const btn = document.getElementById('saveProfileBtn');
+            const msg = document.getElementById('profileMsg');
+            btn.disabled = true; 
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            
+            try {
+                let picUrl = currentProfile?.profile_pic_url;
+                if (avatarFile) {
+                    const fileName = `${currentUser.id}-${Date.now()}.jpg`;
+                    const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(fileName, avatarFile);
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+                    picUrl = urlData.publicUrl;
+                }
+
+                const updates = {
+                    full_name: document.getElementById('profileName').value.trim(),
+                    phone: document.getElementById('profilePhone').value.trim(),
+                    preferred_language: document.getElementById('profileLang').value,
+                    profile_pic_url: picUrl
+                };
+
+                const { error } = await supabaseClient.from('profiles').update(updates).eq('id', currentUser.id);
+                if (error) throw error;
+
+                currentProfile = { ...currentProfile, ...updates };
+                updateAuthUI();
+                msg.textContent = 'Profile updated successfully!';
+                msg.className = 'text-xs text-center mt-2 text-emerald-600';
+                setTimeout(() => closeModal('profileModal'), 1500);
+            } catch (err) {
+                msg.textContent = err.message;
+                msg.className = 'text-xs text-center mt-2 text-red-500';
+            } finally {
+                btn.disabled = false; 
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Changes';
+            }
+        }
+
+        // ==========================================
+        // REVIEWS LOGIC
+        // ==========================================
+        let reviewImageFiles = [];
+
+        async function openReviewsModal() {
+            openModal('reviewsModal');
+            const box = document.getElementById('myReviewsList');
+            if (!box) return;
+            box.innerHTML = '<p class="text-center text-slate-400 py-8">Loading...</p>';
+            if (!currentUser) { 
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">Sign in to view reviews.</p>'; 
+                return; 
+            }
+
+            const { data: reviews, error } = await supabaseClient
+                .from('reviews')
+                .select('*, products(title)')
+                .eq('customer_id', currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error || !reviews || reviews.length === 0) {
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">No reviews yet.</p>';
+                return;
+            }
+
+            box.innerHTML = reviews.map(r => `
+                <div class="border border-slate-200 rounded-xl p-3 mb-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-slate-700 notranslate">${r.products?.title || 'Product'}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${r.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : r.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'} uppercase">${r.status}</span>
+                    </div>
+                    <div class="text-amber-400 text-xs mb-1">${'★'.repeat(r.rating)}</div>
+                    <p class="text-xs text-slate-600">${r.comment || 'No comment'}</p>
+                </div>
+            `).join('');
+        }
+
+        function handleReviewImages(event) {
+            const files = Array.from(event.target.files);
+            reviewImageFiles = files.slice(0, 3);
+            document.getElementById('reviewImageCount').textContent = `${reviewImageFiles.length} image(s) selected`;
+            
+            const preview = document.getElementById('reviewImagePreview');
+            preview.innerHTML = '';
+            reviewImageFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.innerHTML += `<img src="${e.target.result}" class="w-12 h-12 rounded object-cover border border-slate-200">`;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function submitReview() {
+            if (!currentUser) { 
+                showToast('Please sign in first', 'error'); 
+                return; 
+            }
+            const rating = document.getElementById('reviewRating').value;
+            const comment = document.getElementById('reviewComment').value.trim();
+            if (!comment) { 
+                showToast('Please write a comment', 'error'); 
+                return; 
+            }
+
+            const btn = document.getElementById('submitReviewBtn');
+            btn.disabled = true; 
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Posting...';
+
+            try {
+                const { data: review, error } = await supabaseClient
+                    .from('reviews')
+                    .insert({
+                        product_id: currentProduct.id,
+                        customer_id: currentUser.id,
+                        rating: parseInt(rating),
+                        comment: comment,
+                        status: 'pending'
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (reviewImageFiles.length > 0) {
+                    for (const file of reviewImageFiles) {
+                        const fileName = `${review.id}-${Date.now()}.jpg`;
+                        await supabaseClient.storage.from('review-images').upload(fileName, file);
+                        const { data: urlData } = supabaseClient.storage.from('review-images').getPublicUrl(fileName);
+                        await supabaseClient.from('review_images').insert({ review_id: review.id, image_url: urlData.publicUrl });
+                    }
+                }
+
+                showToast('Review submitted for approval!');
+                document.getElementById('reviewForm').reset();
+                document.getElementById('reviewImagePreview').innerHTML = '';
+                document.getElementById('reviewImageCount').textContent = '';
+                reviewImageFiles = [];
+                closeModal('productModal');
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false; 
+                btn.innerHTML = 'Post Review';
+            }
+        }
+
+        // ==========================================
+        // NOTIFICATIONS LOGIC
+        // ==========================================
+        async function openNotifications() {
+            openModal('notifPanel');
+            const box = document.getElementById('notifList');
+            if (!box) return;
+            box.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">Loading...</p>';
+            if (!currentUser) { 
+                box.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">Sign in to view notifications.</p>'; 
+                return; 
+            }
+
+            const { data: notifs, error } = await supabaseClient
+                .from('notifications')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (error || !notifs || notifs.length === 0) {
+                box.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">No notifications yet.</p>';
+                return;
+            }
+
+            box.innerHTML = notifs.map(n => `
+                <div class="p-3 border-b border-slate-100 ${n.is_read ? 'opacity-60' : 'bg-blue-50/50'}">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-xs font-bold text-slate-800">${n.title}</span>
+                        <span class="text-[9px] text-slate-400">${new Date(n.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600">${n.message}</p>
+                </div>
+            `).join('');
+        }
+
+        async function markAllRead() {
+            if (!currentUser) return;
+            await supabaseClient.from('notifications').update({ is_read: true }).eq('user_id', currentUser.id).eq('is_read', false);
+            document.getElementById('notifCount').classList.add('hidden');
+            openNotifications();
+        }
+
+        // ==========================================
+        // CUSTOMER DASHBOARD LOGIC
+        // ==========================================
+        function openCustomerDashboard() {
+            if (!currentUser) { 
+                openModal('authModal'); 
+                return; 
+            }
+            openModal('customerDashboardModal');
+            loadCustomerStats('all');
+        }
+
+        async function loadCustomerStats(period = 'all') {
+            const loading = document.getElementById('cdLoading');
+            const content = document.getElementById('cdContent');
+            if (loading) loading.classList.remove('hidden');
+            if (content) content.classList.add('hidden');
+
+            try {
+                const stats = await window.zorvex.loadCustomerStats(currentUser.id, period);
+                
+                document.getElementById('cdInitial').textContent = (currentProfile?.full_name || 'U')[0].toUpperCase();
+                document.getElementById('cdName').textContent = currentProfile?.full_name || 'User';
+                document.getElementById('cdDaysWith').textContent = stats.daysWith || 0;
+                document.getElementById('cdTotalOrders').textContent = stats.totalOrders || 0;
+                document.getElementById('cdReceived').textContent = stats.received || 0;
+                document.getElementById('cdPending').textContent = stats.pending || 0;
+                document.getElementById('cdCancelled').textContent = stats.cancelled || 0;
+                document.getElementById('cdTotalSpent').textContent = formatPrice(stats.totalSpent || 0);
+                document.getElementById('cdReceivedSpent').textContent = formatPrice(stats.receivedSpent || 0);
+
+                if (loading) loading.classList.add('hidden');
+                if (content) content.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                if (loading) loading.textContent = 'Failed to load stats.';
+            }
+        }
+
+        // ==========================================
+        // REFERRAL & AFFILIATE LOGIC
+        // ==========================================
+        function openReferralModal() {
+            if (!currentUser) { openModal('authModal'); return; }
+            openModal('referralModal');
+            const code = currentProfile?.referral_code || 'ZORVEX' + currentUser.id.substring(0,6).toUpperCase();
+            document.getElementById('referralCode').value = code;
+            document.getElementById('referralLink').value = `${window.location.origin}?ref=${code}`;
+            document.getElementById('referralStats').textContent = 'Referral stats loading...';
+        }
+
+        function copyReferralCode() {
+            const code = document.getElementById('referralCode').value;
+            navigator.clipboard.writeText(code);
+            showToast('Referral code copied!');
+        }
+
+        function copyReferralLink() {
+            const link = document.getElementById('referralLink').value;
+            navigator.clipboard.writeText(link);
+            showToast('Referral link copied!');
+        }
+
+        function openAffiliateModal() {
+            if (!currentUser) { openModal('authModal'); return; }
+            openModal('affiliateModal');
+            const code = 'AFF' + currentUser.id.substring(0,8).toUpperCase();
+            document.getElementById('affCode').value = code;
+            document.getElementById('affLink').value = `${window.location.origin}?aff=${code}`;
+            
+            document.getElementById('affClicks').textContent = '0';
+            document.getElementById('affSales').textContent = '$0';
+            document.getElementById('affEarnings').textContent = '$0';
+        }
+
+        async function joinAffiliateProgram() {
+            if (!currentUser) { openModal('authModal'); return; }
+            showToast('Joining affiliate program...');
+            document.getElementById('affiliateJoinView').classList.add('hidden');
+            document.getElementById('affiliateDashView').classList.remove('hidden');
+            document.getElementById('affCode').value = 'AFF' + currentUser.id.substring(0,8).toUpperCase();
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.openProfileModal = openProfileModal;
+        window.handleAvatarPick = handleAvatarPick;
+        window.saveProfile = saveProfile;
+        window.openReviewsModal = openReviewsModal;
+        window.handleReviewImages = handleReviewImages;
+        window.submitReview = submitReview;
+        window.openNotifications = openNotifications;
+        window.markAllRead = markAllRead;
+        window.openCustomerDashboard = openCustomerDashboard;
+        window.loadCustomerStats = loadCustomerStats;
+        window.openReferralModal = openReferralModal;
+        window.copyReferralCode = copyReferralCode;
+        window.copyReferralLink = copyReferralLink;
+        window.openAffiliateModal = openAffiliateModal;
+        window.joinAffiliateProgram = joinAffiliateProgram;
+      </script>
+
+      <script>
+        // ==========================================
+        // SELLER KYC APPLICATION LOGIC
+        // ==========================================
+        let sellerKycData = { nid_front: null, nid_back: null, face_front: null, face_left: null, face_right: null, selfie_nid: null };
+        let currentKycType = null;
+        let cameraStream = null;
+
+        function openSellerFlow() {
+            if (!currentUser) { openModal('authModal'); return; }
+            if (currentProfile?.role === 'seller' || window.zorvex.adminRoles.includes(currentProfile?.role)) {
+                window.location.href = 'seller.html';
+                return;
+            }
+            document.getElementById('sellerModal').classList.remove('hidden');
+            sellerNext(1);
+        }
+
+        function sellerNext(step) {
+            if (step === 2) {
+                if (!document.getElementById('sk_full_name').value.trim() || !document.getElementById('sk_phone').value.trim()) {
+                    showToast('Please fill all required fields', 'error'); return;
+                }
+            }
+            if (step === 3) {
+                if (!document.getElementById('sk_shop_name').value.trim()) {
+                    showToast('Shop name is required', 'error'); return;
+                }
+            }
+            if (step === 4) {
+                const missing = Object.values(sellerKycData).some(v => !v);
+                if (missing) { showToast('All 6 KYC photos are required', 'error'); return; }
+                renderSellerReview();
+            }
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`sellerStep${i}`).classList.toggle('hidden', i !== step);
+                const dot = document.getElementById(`sellerStepDot${i}`);
+                if (dot) dot.className = `flex-1 h-1.5 rounded ${i <= step ? 'bg-blue-600' : 'bg-slate-200'}`;
+            }
+            const labels = ['Basic Information', 'Shop Details', 'KYC Verification', 'Review & Submit'];
+            document.getElementById('sellerStepLabel').textContent = `Step ${step} of 4 · ${labels[step-1]}`;
+            kycStep = step;
+        }
+
+        function sellerBack(step) {
+            sellerNext(step);
+        }
+
+        function renderSellerReview() {
+            const box = document.getElementById('sellerReviewBox');
+            box.innerHTML = `
+                <p><b>Name:</b> ${document.getElementById('sk_full_name').value}</p>
+                <p><b>Phone:</b> ${document.getElementById('sk_phone').value}</p>
+                <p><b>Shop:</b> ${document.getElementById('sk_shop_name').value}</p>
+                <p><b>Business Type:</b> ${document.getElementById('sk_business_type').value}</p>
+                <p class="text-emerald-600 font-bold">6 KYC photos attached ✓</p>
+            `;
+        }
+
+        // ==========================================
+        // KYC CAMERA LOGIC
+        // ==========================================
+        async function openKycCamera(type) {
+            currentKycType = type;
+            const titles = { nid_front: 'NID Front', nid_back: 'NID Back', face_front: 'Face - Front', face_left: 'Face - Left', face_right: 'Face - Right', selfie_nid: 'Selfie with NID' };
+            document.getElementById('kycTitle').textContent = titles[type] || 'Capture';
+            document.getElementById('kycStepIndicator').textContent = `Step 3 of 4 · Photo`;
+            document.getElementById('kycCameraModal').classList.remove('hidden');
+            
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: type.startsWith('face') || type === 'selfie_nid' ? 'user' : 'environment' } });
+                document.getElementById('kycVideo').srcObject = cameraStream;
+            } catch (err) {
+                document.getElementById('kycError').textContent = 'Camera access denied. Please allow camera permissions.';
+                document.getElementById('kycError').classList.remove('hidden');
+            }
+        }
+
+        function closeKycCamera() {
+            document.getElementById('kycCameraModal').classList.add('hidden');
+            if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+        }
+
+        function captureKycPhoto() {
+            const video = document.getElementById('kycVideo');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            
+            sellerKycData[currentKycType] = dataUrl;
+            const thumb = document.getElementById(`thumb_${currentKycType}`);
+            if (thumb) thumb.src = dataUrl;
+            
+            closeKycCamera();
+            showToast('Photo captured!');
+            sellerNext(3);
+        }
+
+        // ==========================================
+        // SELLER APPLICATION SUBMISSION
+        // ==========================================
+        async function submitSellerApp() {
+            const btn = document.getElementById('sellerSubmitBtn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+
+            try {
+                const uploadImage = async (dataUrl, folder) => {
+                    if (!dataUrl) return null;
+                    const blob = await (await fetch(dataUrl)).blob();
+                    const fileName = `${currentUser.id}/${folder}-${Date.now()}.jpg`;
+                    const { error } = await supabaseClient.storage.from('seller-docs').upload(fileName, blob);
+                    if (error) throw error;
+                    const { data: urlData } = supabaseClient.storage.from('seller-docs').getPublicUrl(fileName);
+                    return urlData.publicUrl;
+                };
+
+                const urls = {
+                    nid_front: await uploadImage(sellerKycData.nid_front, 'nid_front'),
+                    nid_back: await uploadImage(sellerKycData.nid_back, 'nid_back'),
+                    face_front: await uploadImage(sellerKycData.face_front, 'face_front'),
+                    face_left: await uploadImage(sellerKycData.face_left, 'face_left'),
+                    face_right: await uploadImage(sellerKycData.face_right, 'face_right'),
+                    selfie_nid: await uploadImage(sellerKycData.selfie_nid, 'selfie_nid'),
+                };
+
+                const { error } = await supabaseClient.from('seller_applications').insert({
+                    user_id: currentUser.id,
+                    full_name: document.getElementById('sk_full_name').value.trim(),
+                    phone: document.getElementById('sk_phone').value.trim(),
+                    address: document.getElementById('sk_address').value.trim(),
+                    shop_name: document.getElementById('sk_shop_name').value.trim(),
+                    shop_description: document.getElementById('sk_shop_desc').value.trim(),
+                    business_type: document.getElementById('sk_business_type').value,
+                    business_proof_url: document.getElementById('sk_business_proof').value.trim() || null,
+                    nid_front_url: urls.nid_front,
+                    nid_back_url: urls.nid_back,
+                    face_front_url: urls.face_front,
+                    face_left_url: urls.face_left,
+                    face_right_url: urls.face_right,
+                    selfie_with_nid_url: urls.selfie_nid,
+                    status: 'pending'
+                });
+
+                if (error) throw error;
+                document.getElementById('sellerStep4').classList.add('hidden');
+                document.getElementById('sellerSuccessBox').classList.remove('hidden');
+                showToast('Application submitted successfully!');
+                window.zorvex.logActivity('submit_seller_app', 'user', currentUser.id, {});
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Application';
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.openSellerFlow = openSellerFlow;
+        window.sellerNext = sellerNext;
+        window.sellerBack = sellerBack;
+        window.openKycCamera = openKycCamera;
+        window.closeKycCamera = closeKycCamera;
+        window.captureKycPhoto = captureKycPhoto;
+        window.submitSellerApp = submitSellerApp;
+      </script>
+
+      <script>
+        // ==========================================
+        // SUPPORT MODAL LOGIC
+        // ==========================================
+        async function openSupportModal() {
+            openModal('supportModal');
+            const box = document.getElementById('contactLinksBox');
+            box.innerHTML = '<p class="text-center text-slate-400 py-4">Loading...</p>';
+            try {
+                const { data } = await supabaseClient
+                    .from('site_settings')
+                    .select('key, value')
+                    .in('key', ['support_email', 'support_phone', 'support_whatsapp']);
+                
+                if (!data || data.length === 0) { 
+                    box.innerHTML = '<p class="text-center text-slate-400 py-4">No contact info available.</p>'; 
+                    return; 
+                }
+                box.innerHTML = data.map(s => `<p class="text-sm text-slate-600"><b>${s.key.replace('support_','').toUpperCase()}:</b> ${s.value}</p>`).join('');
+            } catch (e) { 
+                box.innerHTML = '<p class="text-center text-red-400 py-4">Failed to load.</p>'; 
+            }
+        }
+
+        // ==========================================
+        // RULES MODAL LOGIC
+        // ==========================================
+        async function openRulesModal(audience = 'customer') {
+            openModal('rulesModal');
+            const box = document.getElementById('rulesContent');
+            box.innerHTML = '<p class="text-center text-slate-400 py-6">Loading...</p>';
+            try {
+                const { data } = await supabaseClient
+                    .from('rules')
+                    .select('*')
+                    .eq('audience', audience)
+                    .eq('is_active', true)
+                    .order('sort_order');
+                
+                if (!data || data.length === 0) { 
+                    box.innerHTML = '<p class="text-center text-slate-400 py-6">No rules found.</p>'; 
+                    return; 
+                }
+                box.innerHTML = data.map(r => `<div class="mb-3"><h4 class="text-sm font-bold text-slate-800">${r.title}</h4><p class="text-xs text-slate-600 mt-1">${r.content}</p></div>`).join('');
+            } catch (e) { 
+                box.innerHTML = '<p class="text-center text-red-400 py-6">Failed to load rules.</p>'; 
+            }
+        }
+
+        // ==========================================
+        // ABOUT & QR SCANNER MODALS
+        // ==========================================
+        function openAboutModal() { 
+            openModal('aboutModal'); 
+        }
+
+        function openQRScanner() { 
+            openModal('qrScannerModal'); 
+            // QR Logic will be integrated here if needed in future updates
+        }
+
+        function closeQRScanner() { 
+            closeModal('qrScannerModal'); 
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.openSupportModal = openSupportModal;
+        window.openRulesModal = openRulesModal;
+        window.openAboutModal = openAboutModal;
+        window.openQRScanner = openQRScanner;
+        window.closeQRScanner = closeQRScanner;
+
+        // ==========================================
+        // FINAL PAGE INITIALIZATION
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Restore saved country and currency preferences
+            const savedCountry = localStorage.getItem('z_country') || 'BD';
+            const savedCurrency = localStorage.getItem('z_currency') || 'BDT';
+            const countryEl = document.getElementById('shipCountry');
+            const currencyEl = document.getElementById('currency');
+            
+            if (countryEl) { 
+                countryEl.value = savedCountry; 
+                countryEl.addEventListener('change', onCountryChange); 
+            }
+            if (currencyEl) { 
+                currencyEl.value = savedCurrency; 
+                currencyEl.addEventListener('change', onCurrencyChange); 
+            }
+
+            // Load initial products and update cart badge
+            if (typeof loadProducts === 'function') loadProducts();
+            updateCartCount();
+
+            // Trigger global UI injections from config file
+            if (typeof zEnforceNoTranslate === 'function') zEnforceNoTranslate();
+            if (typeof zInjectMonitoringNotice === 'function') zInjectMonitoringNotice();
+            if (typeof zInjectAdminLinks === 'function') zInjectAdminLinks();
+            if (typeof zInjectProfessionSwitch === 'function') zInjectProfessionSwitch();
+            if (typeof zFixAdminSidebar === 'function') zFixAdminSidebar();
+            if (typeof zRegisterSW === 'function') zRegisterSW();
+            
+            console.log('✓ Zorvex Store fully loaded - Page: ' + window.zorvex.page);
+        });
+    </script>
+</body>
+</html>
