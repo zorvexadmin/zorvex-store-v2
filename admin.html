@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zorvex Admin | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' } } } } }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .notranslate { unicode-bidi: normal; }
+        .fade-in { animation: fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .skeleton { animation: skel 1.4s ease-in-out infinite; }
+        @keyframes skel { 0%, 100% { opacity: .6; } 50% { opacity: .3; } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex overflow-hidden">
+
+    <!-- ================================================================= -->
+    <!-- SIDEBAR -->
+    <!-- ================================================================= -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white flex flex-col transition-transform -translate-x-full md:translate-x-0">
+        <!-- Brand -->
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 shrink-0">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white mr-2">
+                <i class="fa-solid fa-earth-americas"></i>
+            </div>
+            <span class="font-black text-lg tracking-tight">Zorvex <span class="text-blue-500">Admin</span></span>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 pt-2 pb-1">Main Menu</p>
+            <button onclick="showAdminPage('dashboard')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white" id="nav-dashboard">
+                <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+            </button>
+            <button onclick="showAdminPage('orders')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-orders">
+                <i class="fa-solid fa-box w-5"></i> Orders
+            </button>
+            <button onclick="showAdminPage('products')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-products">
+                <i class="fa-solid fa-tags w-5"></i> Products
+            </button>
+            <button onclick="showAdminPage('users')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-users">
+                <i class="fa-solid fa-users w-5"></i> Users
+            </button>
+            <button onclick="showAdminPage('sellers')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-sellers">
+                <i class="fa-solid fa-store w-5"></i> Sellers
+            </button>
+            
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 pt-4 pb-1">Management</p>
+            <button onclick="showAdminPage('monitoring')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-monitoring">
+                <i class="fa-solid fa-shield-halved w-5"></i> Live Monitoring
+            </button>
+            <button onclick="showAdminPage('reports')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-reports">
+                <i class="fa-solid fa-flag w-5"></i> Reports
+            </button>
+            <button onclick="showAdminPage('rules')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-rules">
+                <i class="fa-solid fa-scroll w-5"></i> Rules & Policies
+            </button>
+            <button onclick="showAdminPage('settings')" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-settings">
+                <i class="fa-solid fa-gear w-5"></i> Site Settings
+            </button>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-slate-800 shrink-0">
+            <button onclick="window.location.href='index.html'" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-white transition">
+                <i class="fa-solid fa-arrow-left"></i> Back to Store
+            </button>
+        </div>
+    </aside>
+
+    <!-- ================================================================= -->
+    <!-- MAIN WRAPPER -->
+    <!-- ================================================================= -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- ================================================================= -->
+        <!-- HEADER -->
+        <!-- ================================================================= -->
+        <header class="sticky top-0 z-30 bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 md:px-6 shadow-sm shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 id="pageTitle" class="text-lg font-black text-slate-800">Dashboard</h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <span class="hidden sm:inline-block text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+                    <i class="fa-solid fa-circle text-[8px] text-emerald-500 mr-1"></i> System Online
+                </span>
+                <div class="relative">
+                    <button id="adminProfileBtn" onclick="toggleAdminMenu()" class="flex items-center gap-2 focus:outline-none">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold" id="adminInitial">A</div>
+                        <span class="hidden md:inline text-sm font-bold text-slate-700" id="adminName">Admin</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <!-- Dropdown -->
+                    <div id="adminProfileMenu" class="hidden absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 fade-in">
+                        <button onclick="signOutAdmin()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ================================================================= -->
+        <!-- MAIN CONTENT AREA -->
+        <!-- ================================================================= -->
+        <main id="mainContent" class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 relative">
+            
+            <!-- PAGE: DASHBOARD -->
+            <div id="page-dashboard" class="page">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Total Sales</span>
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-dollar-sign"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statTotalSales">$0.00</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Total Orders</span>
+                            <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-box"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statTotalOrders">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Pending Orders</span>
+                            <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center"><i class="fa-solid fa-clock"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statPendingOrders">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Total Users</span>
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-users"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statTotalUsers">0</p>
+                    </div>
+                </div>
+
+                <!-- Recent Orders -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="font-black text-slate-800">Recent Orders</h3>
+                        <button onclick="showAdminPage('orders')" class="text-xs font-bold text-blue-600 hover:underline">View All</button>
+                    </div>
+                    <div id="recentOrdersList" class="p-5 text-center text-slate-400 text-sm">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: ORDERS -->
+            <div id="page-orders" class="page hidden"></div>
+            
+            <!-- PAGE: PRODUCTS -->
+            <div id="page-products" class="page hidden"></div>
+            
+            <!-- PAGE: USERS -->
+            <div id="page-users" class="page hidden"></div>
+            
+            <!-- PAGE: SELLERS -->
+            <div id="page-sellers" class="page hidden"></div>
+            
+            <!-- PAGE: MONITORING -->
+            <div id="page-monitoring" class="page hidden"></div>
+            
+            <!-- PAGE: REPORTS -->
+            <div id="page-reports" class="page hidden"></div>
+            
+            <!-- PAGE: RULES -->
+            <div id="page-rules" class="page hidden"></div>
+            
+            <!-- PAGE: SETTINGS -->
+            <div id="page-settings" class="page hidden"></div>
+
+        </main>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- OVERLAYS & MODALS -->
+    <!-- ================================================================= -->
+    <div id="adminToast" class="fixed bottom-4 right-4 z-[100] hidden px-4 py-2 rounded-lg text-white text-sm shadow-lg transition-opacity duration-300"></div>
+    
+    <!-- ================================================================= -->
+    <!-- SCRIPTS -->
+    <!-- ================================================================= -->
+    <script>
+        // ==========================================
+        // SIDEBAR & NAVIGATION
+        // ==========================================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        function showAdminPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            // Show target page
+            const target = document.getElementById(`page-${pageId}`);
+            if (target) target.classList.remove('hidden');
+
+            // Update nav active state
+            document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+            });
+            const activeNav = document.getElementById(`nav-${pageId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-blue-600', 'text-white');
+                activeNav.classList.remove('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+            }
+
+            // Update page title
+            const titles = { dashboard: 'Dashboard', orders: 'Manage Orders', products: 'Manage Products', users: 'User Management', sellers: 'Seller Management', monitoring: 'Live Monitoring', reports: 'Reports & Disputes', rules: 'Rules & Policies', settings: 'Site Settings' };
+            document.getElementById('pageTitle').textContent = titles[pageId] || 'Admin Panel';
+
+            // Load page-specific data
+            if (pageId === 'dashboard' && typeof loadAdminDashboard === 'function') loadAdminDashboard();
+            if (pageId === 'monitoring' && typeof window.zLoadMonitoring === 'function') window.zLoadMonitoring();
+
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+        }
+
+        function toggleAdminMenu() {
+            document.getElementById('adminProfileMenu').classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('adminProfileMenu');
+            const btn = document.getElementById('adminProfileBtn');
+            if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function signOutAdmin() {
+            if (confirm('Are you sure you want to sign out?')) {
+                supabaseClient.auth.signOut().then(() => window.location.href = 'index.html');
+            }
+        }
+              </script>
+
+      <script>
+        // ==========================================
+        // ADMIN AUTHENTICATION CHECK
+        // ==========================================
+        let currentAdmin = null;
+        let currentAdminProfile = null;
+
+        async function checkAdminAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentAdmin = session.user;
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', currentAdmin.id)
+                .single();
+
+            if (error || !profile || !window.zorvex.adminRoles.includes(profile.role)) {
+                alert('Access Denied: You are not authorized to view this page.');
+                await supabaseClient.auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentAdminProfile = profile;
+            document.getElementById('adminName').textContent = profile.full_name || 'Admin';
+            document.getElementById('adminInitial').textContent = (profile.full_name || 'A')[0].toUpperCase();
+            
+            // Load initial dashboard data
+            loadAdminDashboard();
+        }
+
+        // ==========================================
+        // TOAST & HELPER FUNCTIONS
+        // ==========================================
+        function showAdminToast(message, type = 'success') {
+            const toast = document.getElementById('adminToast');
+            toast.className = `fixed bottom-4 right-4 z-[100] px-4 py-2 rounded-lg text-white text-sm shadow-lg transition-opacity duration-300 ${type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`;
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => { toast.classList.add('hidden'); toast.style.opacity = '1'; }, 300); }, 3000);
+        }
+
+        function formatAdminPrice(usdAmount) {
+            const currency = 'USD';
+            return '$' + Number(usdAmount || 0).toFixed(2);
+        }
+
+        // ==========================================
+        // DASHBOARD STATS LOGIC
+        // ==========================================
+        async function loadAdminDashboard() {
+            try {
+                // Fetch all orders
+                const { data: orders, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const totalSales = orders.reduce((sum, o) => sum + (Number(o.total_usd) || 0), 0);
+                const totalOrders = orders.length;
+                const pendingOrders = orders.filter(o => o.status === 'pending').length;
+
+                // Fetch total users
+                const { count: userCount } = await supabaseClient
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('role', 'customer');
+
+                // Update UI
+                document.getElementById('statTotalSales').textContent = formatAdminPrice(totalSales);
+                document.getElementById('statTotalOrders').textContent = totalOrders;
+                document.getElementById('statPendingOrders').textContent = pendingOrders;
+                document.getElementById('statTotalUsers').textContent = userCount || 0;
+
+                // Render Recent Orders (Top 5)
+                const recentBox = document.getElementById('recentOrdersList');
+                if (!orders || orders.length === 0) {
+                    recentBox.innerHTML = '<p class="text-center text-slate-400 text-sm">No orders yet.</p>';
+                    return;
+                }
+
+                const recentOrders = orders.slice(0, 5);
+                recentBox.innerHTML = recentOrders.map(o => `
+                    <div class="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">#${o.order_code || o.id.substring(0, 8)}</p>
+                            <p class="text-[10px] text-slate-500">${new Date(o.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-bold text-blue-600 notranslate">${formatAdminPrice(o.total_usd)}</p>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${o.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : o.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'} uppercase">${o.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error('Dashboard load error:', err);
+                showAdminToast('Failed to load dashboard data', 'error');
+            }
+        }
+
+        // ==========================================
+        // INITIALIZE ADMIN PAGE
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+        });
+      </script>
+
+      <script>
+        // ==========================================
+        // ORDERS MANAGEMENT LOGIC
+        // ==========================================
+        let allAdminOrders = [];
+
+        async function loadAdminOrders() {
+            const pageBox = document.getElementById('page-orders');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
+                        <h3 class="font-black text-slate-800">All Orders</h3>
+                        <div class="flex gap-2">
+                            <select id="orderStatusFilter" onchange="filterAdminOrders()" class="text-xs border border-slate-300 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="all">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="packaging">Packaging</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="out_for_delivery">Out for Delivery</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            <button onclick="loadAdminOrders()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fa-solid fa-rotate-right"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold">
+                                <tr>
+                                    <th class="px-5 py-3">Order ID</th>
+                                    <th class="px-5 py-3">Customer</th>
+                                    <th class="px-5 py-3">Amount</th>
+                                    <th class="px-5 py-3">Payment</th>
+                                    <th class="px-5 py-3">Status</th>
+                                    <th class="px-5 py-3">Date</th>
+                                    <th class="px-5 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminOrdersTable" class="divide-y divide-slate-100">
+                                <tr><td colspan="7" class="text-center py-8 text-slate-400">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            await fetchAdminOrders();
+        }
+
+        async function fetchAdminOrders() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                allAdminOrders = data || [];
+                renderAdminOrders();
+            } catch (err) {
+                showAdminToast('Failed to load orders', 'error');
+            }
+        }
+
+        function renderAdminOrders() {
+            const tbody = document.getElementById('adminOrdersTable');
+            if (!tbody) return;
+
+            const filter = document.getElementById('orderStatusFilter')?.value || 'all';
+            const filtered = filter === 'all' ? allAdminOrders : allAdminOrders.filter(o => o.status === filter);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">No orders found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(o => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-5 py-3 font-bold text-blue-600 text-xs">#${o.order_code || o.id.substring(0,8)}</td>
+                    <td class="px-5 py-3">
+                        <p class="text-xs font-bold text-slate-800">${o.full_name}</p>
+                        <p class="text-[10px] text-slate-500">${o.phone}</p>
+                    </td>
+                    <td class="px-5 py-3 font-bold text-slate-800 notranslate">${formatAdminPrice(o.total_usd)}</td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${o.payment_method === 'cod' ? 'bg-slate-100 text-slate-600' : 'bg-blue-100 text-blue-700'} uppercase">${o.payment_method}</span>
+                    </td>
+                    <td class="px-5 py-3">
+                        <select onchange="updateOrderStatus('${o.id}', this.value)" class="text-[10px] font-bold border border-slate-200 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+                            ${['pending','confirmed','packaging','shipped','out_for_delivery','delivered','cancelled'].map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.toUpperCase()}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="px-5 py-3 text-[10px] text-slate-500">${new Date(o.created_at).toLocaleDateString()}</td>
+                    <td class="px-5 py-3 text-right">
+                        <button onclick="openAdminOrderDetails('${o.id}')" class="text-xs font-bold text-blue-600 hover:underline">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterAdminOrders() {
+            renderAdminOrders();
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', orderId);
+                if (error) throw error;
+                showAdminToast('Order status updated!');
+                // Update local array to avoid full refetch
+                const order = allAdminOrders.find(o => o.id === orderId);
+                if (order) order.status = newStatus;
+                renderAdminOrders();
+                if (typeof window.zorvex?.logActivity === 'function') {
+                    window.zorvex.logActivity('update_order_status', 'order', orderId, { status: newStatus });
+                }
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // ORDER DETAILS MODAL
+        // ==========================================
+        function openAdminOrderDetails(orderId) {
+            const o = allAdminOrders.find(x => x.id === orderId);
+            if (!o) return;
+
+            const modalHtml = `
+                <div id="adminOrderModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3 fade-in">
+                    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-lg">Order Details</h3>
+                            <button onclick="document.getElementById('adminOrderModal').remove()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="space-y-3 text-sm">
+                            <p><b>Order ID:</b> <span class="text-blue-600">#${o.order_code || o.id.substring(0,8)}</span></p>
+                            <p><b>Customer:</b> ${o.full_name}</p>
+                            <p><b>Phone:</b> ${o.phone}</p>
+                            <p><b>Address:</b> ${o.address}, ${o.ship_district || ''}, ${o.ship_country}</p>
+                            <p><b>Payment Method:</b> ${o.payment_method}</p>
+                            ${o.payment_txn_id ? `<p><b>Transaction ID:</b> ${o.payment_txn_id}</p>` : ''}
+                            <p><b>Subtotal:</b> ${formatAdminPrice(o.subtotal_usd)}</p>
+                            <p><b>Shipping:</b> ${formatAdminPrice(o.shipping_usd)}</p>
+                            <p><b>Total:</b> <span class="font-bold text-blue-600">${formatAdminPrice(o.total_usd)}</span></p>
+                            <p><b>Status:</b> <span class="font-bold uppercase text-emerald-600">${o.status}</span></p>
+                            <p><b>Date:</b> ${new Date(o.created_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('adminOrderModal').classList.remove('hidden');
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadAdminOrders = loadAdminOrders;
+        window.filterAdminOrders = filterAdminOrders;
+        window.updateOrderStatus = updateOrderStatus;
+        window.openAdminOrderDetails = openAdminOrderDetails;
+      </script>
+
+    <script>
+        // ==========================================
+        // PRODUCTS MANAGEMENT LOGIC
+        // ==========================================
+        let allAdminProducts = [];
+
+        async function loadAdminProducts() {
+            const pageBox = document.getElementById('page-products');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
+                        <h3 class="font-black text-slate-800">All Products</h3>
+                        <div class="flex gap-2">
+                            <button onclick="openProductForm()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fa-solid fa-plus"></i> Add Product
+                            </button>
+                            <button onclick="loadAdminProducts()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fa-solid fa-rotate-right"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold">
+                                <tr>
+                                    <th class="px-5 py-3">Product</th>
+                                    <th class="px-5 py-3">Price</th>
+                                    <th class="px-5 py-3">Stock</th>
+                                    <th class="px-5 py-3">Type</th>
+                                    <th class="px-5 py-3">Status</th>
+                                    <th class="px-5 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminProductsTable" class="divide-y divide-slate-100">
+                                <tr><td colspan="6" class="text-center py-8 text-slate-400">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            await fetchAdminProducts();
+        }
+
+        async function fetchAdminProducts() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('products')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                allAdminProducts = data || [];
+                renderAdminProducts();
+            } catch (err) {
+                showAdminToast('Failed to load products', 'error');
+            }
+        }
+
+        function renderAdminProducts() {
+            const tbody = document.getElementById('adminProductsTable');
+            if (!tbody) return;
+
+            if (allAdminProducts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">No products found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allAdminProducts.map(p => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-5 py-3">
+                        <div class="flex items-center gap-3">
+                            <img src="${p.image_url || 'https://placehold.co/50x50'}" class="w-10 h-10 rounded object-cover border border-slate-200">
+                            <div>
+                                <p class="text-xs font-bold text-slate-800 line-clamp-1 notranslate">${p.title}</p>
+                                <p class="text-[10px] text-slate-500">ID: ${p.id.substring(0,8)}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3 font-bold text-slate-800 notranslate">$${Number(p.price_usd).toFixed(2)}</td>
+                    <td class="px-5 py-3 text-xs font-bold ${p.stock > 0 ? 'text-emerald-600' : 'text-red-600'}">${p.stock || 0}</td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase">${p.product_type || 'OWN'}</span>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${p.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'} uppercase">${p.is_active ? 'Active' : 'Hidden'}</span>
+                    </td>
+                    <td class="px-5 py-3 text-right space-x-2">
+                        <button onclick="openProductForm('${p.id}')" class="text-xs font-bold text-blue-600 hover:underline">Edit</button>
+                        <button onclick="deleteAdminProduct('${p.id}')" class="text-xs font-bold text-red-500 hover:underline">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ==========================================
+        // ADD / EDIT PRODUCT FORM
+        // ==========================================
+        function openProductForm(productId = null) {
+            const p = productId ? allAdminProducts.find(x => x.id === productId) : null;
+            const isEdit = !!p;
+
+            const modalHtml = `
+                <div id="adminProductModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3 fade-in">
+                    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-lg">${isEdit ? 'Edit Product' : 'Add New Product'}</h3>
+                            <button onclick="document.getElementById('adminProductModal').remove()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <form onsubmit="saveAdminProduct(event, '${productId || ''}')" class="space-y-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Product Title *</label>
+                                <input id="ap_title" required value="${p?.title || ''}" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500">Price (USD) *</label>
+                                    <input id="ap_price" type="number" step="0.01" required value="${p?.price_usd || ''}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500">Old Price (USD)</label>
+                                    <input id="ap_old_price" type="number" step="0.01" value="${p?.old_price_usd || ''}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500">Stock *</label>
+                                    <input id="ap_stock" type="number" required value="${p?.stock || 999}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500">Category ID</label>
+                                    <input id="ap_category" type="number" value="${p?.category_id || 1}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Description</label>
+                                <textarea id="ap_desc" rows="3" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">${p?.description || ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Image URL</label>
+                                <input id="ap_image" value="${p?.image_url || ''}" placeholder="https://..." class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Upload Image (Optional)</label>
+                                <input id="ap_image_file" type="file" accept="image/*" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <input type="checkbox" id="ap_active" ${p?.is_active !== false ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded">
+                                <label for="ap_active" class="text-xs font-bold text-slate-600">Active / Visible in Store</label>
+                            </div>
+                            <button type="submit" id="ap_submit_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm mt-4 transition">
+                                ${isEdit ? 'Update Product' : 'Create Product'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('adminProductModal').classList.remove('hidden');
+        }
+
+        async function saveAdminProduct(event, productId) {
+            event.preventDefault();
+            const btn = document.getElementById('ap_submit_btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                let imageUrl = document.getElementById('ap_image').value.trim();
+                const fileInput = document.getElementById('ap_image_file');
+                
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileName = `product-${Date.now()}.jpg`;
+                    const { error: uploadError } = await supabaseClient.storage.from('product-images').upload(fileName, file);
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = supabaseClient.storage.from('product-images').getPublicUrl(fileName);
+                    imageUrl = urlData.publicUrl;
+                }
+
+                const productData = {
+                    title: document.getElementById('ap_title').value.trim(),
+                    price_usd: parseFloat(document.getElementById('ap_price').value),
+                    old_price_usd: parseFloat(document.getElementById('ap_old_price').value) || null,
+                    stock: parseInt(document.getElementById('ap_stock').value),
+                    category_id: parseInt(document.getElementById('ap_category').value),
+                    description: document.getElementById('ap_desc').value.trim(),
+                    image_url: imageUrl || null,
+                    is_active: document.getElementById('ap_active').checked,
+                    seller_id: currentAdmin.id // Admin owns it or it's a generic product
+                };
+
+                if (productId) {
+                    const { error } = await supabaseClient.from('products').update(productData).eq('id', productId);
+                    if (error) throw error;
+                    showAdminToast('Product updated successfully!');
+                } else {
+                    const { error } = await supabaseClient.from('products').insert(productData);
+                    if (error) throw error;
+                    showAdminToast('Product created successfully!');
+                }
+
+                document.getElementById('adminProductModal').remove();
+                await fetchAdminProducts();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+                btn.disabled = false; btn.innerHTML = productId ? 'Update Product' : 'Create Product';
+            }
+        }
+
+        async function deleteAdminProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            try {
+                const { error } = await supabaseClient.from('products').delete().eq('id', productId);
+                if (error) throw error;
+                showAdminToast('Product deleted!');
+                await fetchAdminProducts();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadAdminProducts = loadAdminProducts;
+        window.openProductForm = openProductForm;
+        window.saveAdminProduct = saveAdminProduct;
+        window.deleteAdminProduct = deleteAdminProduct;
+    </script>
+
+      <script>
+        // ==========================================
+        // USERS MANAGEMENT LOGIC
+        // ==========================================
+        let allAdminUsers = [];
+
+        async function loadAdminUsers() {
+            const pageBox = document.getElementById('page-users');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
+                        <h3 class="font-black text-slate-800">User Management</h3>
+                        <div class="flex gap-2">
+                            <input id="userSearchInput" oninput="filterAdminUsers()" placeholder="Search by name..." class="text-xs border border-slate-300 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 w-48">
+                            <button onclick="loadAdminUsers()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold">
+                                <tr>
+                                    <th class="px-5 py-3">User</th>
+                                    <th class="px-5 py-3">Role</th>
+                                    <th class="px-5 py-3">KYC Status</th>
+                                    <th class="px-5 py-3">Joined</th>
+                                    <th class="px-5 py-3">Status</th>
+                                    <th class="px-5 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminUsersTable" class="divide-y divide-slate-100">
+                                <tr><td colspan="6" class="text-center py-8 text-slate-400">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            await fetchAdminUsers();
+        }
+
+        async function fetchAdminUsers() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(200);
+
+                if (error) throw error;
+                allAdminUsers = data || [];
+                renderAdminUsers();
+            } catch (err) {
+                showAdminToast('Failed to load users', 'error');
+            }
+        }
+
+        function renderAdminUsers() {
+            const tbody = document.getElementById('adminUsersTable');
+            if (!tbody) return;
+
+            const search = (document.getElementById('userSearchInput')?.value || '').toLowerCase();
+            const filtered = allAdminUsers.filter(u => 
+                (u.full_name || '').toLowerCase().includes(search) || 
+                (u.id || '').toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">No users found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-5 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">${(u.full_name || 'U')[0].toUpperCase()}</div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">${u.full_name || 'Unknown'}</p>
+                                <p class="text-[10px] text-slate-500">${u.phone || 'No phone'}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase ${u.role === 'super_admin' || u.role === 'admin' ? 'bg-purple-100 text-purple-700' : u.role === 'seller' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}">${u.role}</span>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold uppercase ${u.kyc_status === 'approved' ? 'text-emerald-600' : u.kyc_status === 'pending' ? 'text-amber-600' : 'text-slate-400'}">${u.kyc_status || 'not_submitted'}</span>
+                    </td>
+                    <td class="px-5 py-3 text-[10px] text-slate-500">${new Date(u.created_at).toLocaleDateString()}</td>
+                    <td class="px-5 py-3">
+                        ${u.is_banned 
+                            ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700 uppercase">Banned</span>` 
+                            : `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase">Active</span>`}
+                    </td>
+                    <td class="px-5 py-3 text-right space-x-2">
+                        <button onclick="viewUserDetails('${u.id}')" class="text-xs font-bold text-blue-600 hover:underline">View</button>
+                        ${u.is_banned 
+                            ? `<button onclick="unbanUser('${u.id}')" class="text-xs font-bold text-emerald-600 hover:underline">Unban</button>` 
+                            : `<button onclick="openBanModal('${u.id}')" class="text-xs font-bold text-red-500 hover:underline">Ban</button>`}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterAdminUsers() {
+            renderAdminUsers();
+        }
+
+        function viewUserDetails(userId) {
+            const u = allAdminUsers.find(x => x.id === userId);
+            if (!u) return;
+
+            const modalHtml = `
+                <div id="adminUserModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3 fade-in">
+                    <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-lg">User Details</h3>
+                            <button onclick="document.getElementById('adminUserModal').remove()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="space-y-3 text-sm">
+                            <p><b>Name:</b> ${u.full_name || 'Unknown'}</p>
+                            <p><b>Phone:</b> ${u.phone || 'N/A'}</p>
+                            <p><b>Role:</b> <span class="uppercase font-bold">${u.role}</span></p>
+                            <p><b>KYC Status:</b> <span class="uppercase font-bold">${u.kyc_status || 'not_submitted'}</span></p>
+                            <p><b>Banned:</b> ${u.is_banned ? 'Yes' : 'No'}</p>
+                            ${u.banned_reason ? `<p><b>Ban Reason:</b> ${u.banned_reason}</p>` : ''}
+                            <p><b>Joined:</b> ${new Date(u.created_at).toLocaleString()}</p>
+                            <p><b>Last Login:</b> ${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never'}</p>
+                            <p><b>IP Address:</b> ${u.last_ip || 'N/A'}</p>
+                            <p><b>Device:</b> ${u.last_device || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('adminUserModal').classList.remove('hidden');
+        }
+
+        // ==========================================
+        // BAN / UNBAN LOGIC
+        // ==========================================
+        function openBanModal(userId) {
+            const modalHtml = `
+                <div id="adminBanModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3 fade-in">
+                    <div class="bg-white rounded-2xl max-w-md w-full p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-lg text-red-600">Ban User</h3>
+                            <button onclick="document.getElementById('adminBanModal').remove()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Ban Type</label>
+                                <select id="banTypeSelect" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-red-500">
+                                    <option value="temporary">Temporary</option>
+                                    <option value="permanent">Permanent</option>
+                                </select>
+                            </div>
+                            <div id="banDurationBox">
+                                <label class="text-xs font-bold text-slate-500">Duration (Days)</label>
+                                <input id="banDurationDays" type="number" value="7" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-red-500">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Reason *</label>
+                                <textarea id="banReasonInput" rows="2" required placeholder="Explain the reason for ban..." class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-red-500"></textarea>
+                            </div>
+                            <button onclick="confirmBanUser('${userId}')" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm mt-2 transition">Confirm Ban</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('adminBanModal').classList.remove('hidden');
+        }
+
+        async function confirmBanUser(userId) {
+            const banType = document.getElementById('banTypeSelect').value;
+            const duration = document.getElementById('banDurationDays')?.value;
+            const reason = document.getElementById('banReasonInput').value.trim();
+            const user = allAdminUsers.find(x => x.id === userId);
+
+            if (!reason) { showAdminToast('Please enter a reason', 'error'); return; }
+
+            try {
+                await supabaseClient.from('profiles').update({
+                    is_banned: true,
+                    banned_reason: reason,
+                    banned_at: new Date().toISOString(),
+                    banned_by: currentAdmin.id
+                }).eq('id', userId);
+
+                await supabaseClient.from('ban_history').insert({
+                    user_id: userId,
+                    user_email: user?.email || null,
+                    ban_type: banType,
+                    ban_duration_days: banType === 'temporary' ? parseInt(duration) || 7 : null,
+                    reason: reason,
+                    phone: user?.phone || null,
+                    ip_address: user?.last_ip || null,
+                    device_fingerprint: user?.last_device || null,
+                    banned_by: currentAdmin.id
+                });
+
+                if (banType === 'permanent') {
+                    if (user?.phone) {
+                        await supabaseClient.from('banned_phones').upsert({ phone: user.phone, reason, banned_by: currentAdmin.id, original_user_id: userId }, { onConflict: 'phone' });
+                    }
+                    if (user?.last_ip) {
+                        await supabaseClient.from('banned_ips').upsert({ ip_address: user.last_ip, reason, banned_by: currentAdmin.id, original_user_id: userId }, { onConflict: 'ip_address' });
+                    }
+                    if (user?.last_device) {
+                        await supabaseClient.from('banned_devices').upsert({ fingerprint: user.last_device, reason, banned_by: currentAdmin.id, original_user_id: userId }, { onConflict: 'fingerprint' });
+                    }
+                }
+
+                try {
+                    await supabaseClient.from('notifications').insert({
+                        user_id: userId,
+                        title: 'Account Suspended',
+                        message: `Your account has been ${banType === 'temporary' ? 'temporarily' : 'permanently'} banned. Reason: ${reason}`,
+                        type: 'error'
+                    });
+                } catch(e) {}
+
+                showAdminToast('User banned successfully!');
+                document.getElementById('adminBanModal').remove();
+                await fetchAdminUsers();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        async function unbanUser(userId) {
+            if (!confirm('Are you sure you want to unban this user?')) return;
+            try {
+                await supabaseClient.from('profiles').update({
+                    is_banned: false,
+                    banned_reason: null,
+                    banned_at: null,
+                    banned_by: null
+                }).eq('id', userId);
+
+                try {
+                    await supabaseClient.from('notifications').insert({
+                        user_id: userId,
+                        title: 'Account Restored',
+                        message: 'Your account has been restored. Welcome back!',
+                        type: 'success'
+                    });
+                } catch(e) {}
+
+                showAdminToast('User unbanned successfully!');
+                await fetchAdminUsers();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadAdminUsers = loadAdminUsers;
+        window.filterAdminUsers = filterAdminUsers;
+        window.viewUserDetails = viewUserDetails;
+        window.openBanModal = openBanModal;
+        window.confirmBanUser = confirmBanUser;
+        window.unbanUser = unbanUser;
+      </script>
+
+      <script>
+        // ==========================================
+        // SELLERS MANAGEMENT LOGIC
+        // ==========================================
+        let allSellerApplications = [];
+
+        async function loadAdminSellers() {
+            const pageBox = document.getElementById('page-sellers');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="font-black text-slate-800">Seller Applications</h3>
+                        <button onclick="loadAdminSellers()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition">
+                            <i class="fa-solid fa-rotate-right"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="sellerAppsList" class="p-5">
+                        <p class="text-center text-slate-400 py-8">Loading...</p>
+                    </div>
+                </div>
+            `;
+            await fetchSellerApplications();
+        }
+
+        async function fetchSellerApplications() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('seller_applications')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                allSellerApplications = data || [];
+                renderSellerApplications();
+            } catch (err) {
+                showAdminToast('Failed to load applications', 'error');
+            }
+        }
+
+        function renderSellerApplications() {
+            const box = document.getElementById('sellerAppsList');
+            if (!box) return;
+
+            if (allSellerApplications.length === 0) {
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">No applications yet.</p>';
+                return;
+            }
+
+            box.innerHTML = allSellerApplications.map(app => `
+                <div class="border border-slate-200 rounded-xl p-4 mb-3">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">${app.shop_name}</p>
+                            <p class="text-[10px] text-slate-500">${app.full_name} · ${app.phone}</p>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${app.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : app.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'} uppercase">${app.status}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mb-2">${app.shop_description || 'No description'}</p>
+                    <div class="flex gap-2 text-[10px] text-slate-500 mb-3">
+                        <span><b>Type:</b> ${app.business_type || 'N/A'}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        ${app.nid_front_url ? `<a href="${app.nid_front_url}" target="_blank" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">NID Front</a>` : ''}
+                        ${app.nid_back_url ? `<a href="${app.nid_back_url}" target="_blank" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">NID Back</a>` : ''}
+                        ${app.selfie_with_nid_url ? `<a href="${app.selfie_with_nid_url}" target="_blank" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">Selfie</a>` : ''}
+                        ${app.business_proof_url ? `<a href="${app.business_proof_url}" target="_blank" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">Business Proof</a>` : ''}
+                    </div>
+                    ${app.status === 'pending' ? `
+                        <div class="flex gap-2">
+                            <button onclick="approveSellerApp('${app.id}', '${app.user_id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-xl transition">Approve</button>
+                            <button onclick="rejectSellerApp('${app.id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-2 rounded-xl transition">Reject</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function approveSellerApp(appId, userId) {
+            try {
+                await supabaseClient.from('seller_applications').update({
+                    status: 'approved',
+                    reviewed_by: currentAdmin.id,
+                    reviewed_at: new Date().toISOString()
+                }).eq('id', appId);
+
+                await supabaseClient.from('profiles').update({ role: 'seller', kyc_status: 'approved' }).eq('id', userId);
+
+                try {
+                    await supabaseClient.from('notifications').insert({
+                        user_id: userId,
+                        title: 'Seller Application Approved',
+                        message: 'Congratulations! Your seller application has been approved. You can now start selling.',
+                        type: 'success'
+                    });
+                } catch(e) {}
+
+                showAdminToast('Seller approved!');
+                await fetchSellerApplications();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        async function rejectSellerApp(appId) {
+            const reason = prompt('Rejection reason:');
+            if (!reason) return;
+            try {
+                await supabaseClient.from('seller_applications').update({
+                    status: 'rejected',
+                    admin_notes: reason,
+                    reviewed_by: currentAdmin.id,
+                    reviewed_at: new Date().toISOString()
+                }).eq('id', appId);
+                showAdminToast('Application rejected.');
+                await fetchSellerApplications();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadAdminSellers = loadAdminSellers;
+        window.approveSellerApp = approveSellerApp;
+        window.rejectSellerApp = rejectSellerApp;
+      </script>
+
+      <script>
+        // ==========================================
+        // REPORTS MANAGEMENT LOGIC
+        // ==========================================
+        let allAdminReports = [];
+
+        async function loadAdminReports() {
+            const pageBox = document.getElementById('page-reports');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="font-black text-slate-800">Reports & Disputes</h3>
+                        <button onclick="loadAdminReports()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition">
+                            <i class="fa-solid fa-rotate-right"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="adminReportsList" class="p-5">
+                        <p class="text-center text-slate-400 py-8">Loading...</p>
+                    </div>
+                </div>
+            `;
+            await fetchAdminReports();
+        }
+
+        async function fetchAdminReports() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('reports')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                allAdminReports = data || [];
+                renderAdminReports();
+            } catch (err) {
+                showAdminToast('Failed to load reports', 'error');
+            }
+        }
+
+        function renderAdminReports() {
+            const box = document.getElementById('adminReportsList');
+            if (!box) return;
+
+            if (allAdminReports.length === 0) {
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">No reports found.</p>';
+                return;
+            }
+
+            box.innerHTML = allAdminReports.map(r => `
+                <div class="border border-slate-200 rounded-xl p-4 mb-3">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">${r.report_type.replace(/_/g, ' ').toUpperCase()}</p>
+                            <p class="text-[10px] text-slate-500">Reported by: ${r.reporter_role} | Reported User: ${r.reported_role}</p>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${r.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : r.status === 'dismissed' ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'} uppercase">${r.status}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mb-2">${r.description}</p>
+                    ${r.evidence_url ? `<a href="${r.evidence_url}" target="_blank" class="text-[10px] text-blue-600 font-bold hover:underline">View Evidence</a>` : ''}
+                    
+                    ${r.status === 'pending' ? `
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="openResolveReportModal('${r.id}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl transition">Resolve</button>
+                            <button onclick="dismissReport('${r.id}')" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold py-2 rounded-xl transition">Dismiss</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function openResolveReportModal(reportId) {
+            const modalHtml = `
+                <div id="resolveReportModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3 fade-in">
+                    <div class="bg-white rounded-2xl max-w-md w-full p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-lg">Resolve Report</h3>
+                            <button onclick="document.getElementById('resolveReportModal').remove()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Admin Notes</label>
+                                <textarea id="resolveReportNotes" rows="3" placeholder="Add notes about the resolution..." class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                            <button onclick="confirmResolveReport('${reportId}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm mt-2 transition">Confirm Resolution</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('resolveReportModal').classList.remove('hidden');
+        }
+
+        async function confirmResolveReport(reportId) {
+            const notes = document.getElementById('resolveReportNotes').value.trim();
+            try {
+                await supabaseClient.from('reports').update({
+                    status: 'resolved',
+                    admin_notes: notes || null,
+                    resolved_by: currentAdmin.id,
+                    resolved_at: new Date().toISOString(),
+                    action_taken: 'resolved'
+                }).eq('id', reportId);
+
+                showAdminToast('Report resolved!');
+                document.getElementById('resolveReportModal').remove();
+                await fetchAdminReports();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        async function dismissReport(reportId) {
+            if (!confirm('Dismiss this report?')) return;
+            try {
+                await supabaseClient.from('reports').update({
+                    status: 'dismissed',
+                    resolved_by: currentAdmin.id,
+                    resolved_at: new Date().toISOString(),
+                    action_taken: 'dismissed'
+                }).eq('id', reportId);
+                showAdminToast('Report dismissed.');
+                await fetchAdminReports();
+            } catch (err) {
+                showAdminToast(err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // RULES & POLICIES MANAGEMENT
+        // ==========================================
+        let allAdminRules = [];
+
+        async function loadAdminRules() {
+            const pageBox = document.getElementById('page-rules');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="font-black text-slate-800">Rules & Policies</h3>
+                        <div class="flex gap-2">
+                            <button onclick="openRuleForm()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold transition"><i class="fa-solid fa-plus"></i> Add Rule</button>
+                            <button onclick="loadAdminRules()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+                    </div>
+                    <div id="adminRulesList" class="p-5">
+                        <p class="text-center text-slate-400 py-8">Loading...</p>
+                    </div>
+                </div>
+            `;
+            await fetchAdminRules();
+        }
+
+        async function fetchAdminRules() {
+            try {
+                const { data, error } = await supabaseClient.from('rules').select('*').order('sort_order');
+                if (error) throw error;
+                allAdminRules = data || [];
+                renderAdminRules();
+            } catch (err) { showAdminToast('Failed to load rules', 'error'); }
+        }
+
+        function renderAdminRules() {
+            const box = document.getElementById('adminRulesList');
+            if (!box) return;
+
+            if (allAdminRules.length === 0) {
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">No rules added yet.</p>';
+                return;
+            }
+
+            box.innerHTML = allAdminRules.map(r => `
+                <div class="border border-slate-200 rounded-xl p-4 mb-3">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">${r.title}</p>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${r.audience === 'customer' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'} uppercase">${r.audience}</span>
+                        </div>
+                        <span class="text-[10px] font-bold ${r.is_active ? 'text-emerald-600' : 'text-slate-400'}">${r.is_active ? 'Active' : 'Hidden'}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mb-3">${r.content}</p>
+                    <div class="flex gap-2">
+                        <button onclick="openRuleForm('${r.id}')" class="text-xs font-bold text-blue-600 hover:underline">Edit</button>
+                        <button onclick="deleteAdminRule('${r.id}')" class="text-xs font-bold text-red-500 hover:underline">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openRuleForm(ruleId = null) {
+            const r = ruleId ? allAdminRules.find(x => x.id === ruleId) : null;
+            const modalHtml = `
+                <div id="adminRuleModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3 fade-in">
+                    <div class="bg-white rounded-2xl max-w-md w-full p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-lg">${r ? 'Edit Rule' : 'Add New Rule'}</h3>
+                            <button onclick="document.getElementById('adminRuleModal').remove()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <form onsubmit="saveAdminRule(event, '${ruleId || ''}')" class="space-y-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Audience</label>
+                                <select id="ruleAudience" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="customer" ${r?.audience === 'customer' ? 'selected' : ''}>Customer</option>
+                                    <option value="seller" ${r?.audience === 'seller' ? 'selected' : ''}>Seller</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Title *</label>
+                                <input id="ruleTitle" required value="${r?.title || ''}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Content *</label>
+                                <textarea id="ruleContent" rows="4" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-500">${r?.content || ''}</textarea>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="ruleActive" ${r?.is_active !== false ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded">
+                                <label for="ruleActive" class="text-xs font-bold text-slate-600">Active / Visible</label>
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm mt-4 transition">${r ? 'Update Rule' : 'Create Rule'}</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('adminRuleModal').classList.remove('hidden');
+        }
+
+        async function saveAdminRule(event, ruleId) {
+            event.preventDefault();
+            const data = {
+                audience: document.getElementById('ruleAudience').value,
+                title: document.getElementById('ruleTitle').value.trim(),
+                content: document.getElementById('ruleContent').value.trim(),
+                is_active: document.getElementById('ruleActive').checked
+            };
+            try {
+                if (ruleId) {
+                    await supabaseClient.from('rules').update(data).eq('id', ruleId);
+                    showAdminToast('Rule updated!');
+                } else {
+                    await supabaseClient.from('rules').insert(data);
+                    showAdminToast('Rule created!');
+                }
+                document.getElementById('adminRuleModal').remove();
+                await fetchAdminRules();
+            } catch (err) { showAdminToast(err.message, 'error'); }
+        }
+
+        async function deleteAdminRule(ruleId) {
+            if (!confirm('Delete this rule?')) return;
+            try {
+                await supabaseClient.from('rules').delete().eq('id', ruleId);
+                showAdminToast('Rule deleted!');
+                await fetchAdminRules();
+            } catch (err) { showAdminToast(err.message, 'error'); }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadAdminReports = loadAdminReports;
+        window.openResolveReportModal = openResolveReportModal;
+        window.confirmResolveReport = confirmResolveReport;
+        window.dismissReport = dismissReport;
+        window.loadAdminRules = loadAdminRules;
+        window.openRuleForm = openRuleForm;
+        window.saveAdminRule = saveAdminRule;
+        window.deleteAdminRule = deleteAdminRule;
+      </script>
+  
+     <script>
+        // ==========================================
+        // SITE SETTINGS MANAGEMENT
+        // ==========================================
+        let allAdminSettings = [];
+
+        async function loadAdminSettings() {
+            const pageBox = document.getElementById('page-settings');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200">
+                        <h3 class="font-black text-slate-800">Site Settings</h3>
+                    </div>
+                    <div id="adminSettingsList" class="p-5">
+                        <p class="text-center text-slate-400 py-8">Loading...</p>
+                    </div>
+                </div>
+            `;
+            await fetchAdminSettings();
+        }
+
+        async function fetchAdminSettings() {
+            try {
+                const { data, error } = await supabaseClient.from('site_settings').select('*').order('key');
+                if (error) throw error;
+                allAdminSettings = data || [];
+                renderAdminSettings();
+            } catch (err) { showAdminToast('Failed to load settings', 'error'); }
+        }
+
+        function renderAdminSettings() {
+            const box = document.getElementById('adminSettingsList');
+            if (!box) return;
+
+            if (allAdminSettings.length === 0) {
+                box.innerHTML = '<p class="text-center text-slate-400 py-8">No settings found.</p>';
+                return;
+            }
+
+            box.innerHTML = allAdminSettings.map(s => `
+                <div class="flex items-center gap-3 border-b border-slate-100 py-3 last:border-0">
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-slate-700">${s.key.replace(/_/g, ' ').toUpperCase()}</p>
+                        <input id="setting_${s.key}" value="${s.value || ''}" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button onclick="saveAdminSetting('${s.key}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition mt-4">Save</button>
+                </div>
+            `).join('');
+        }
+
+        async function saveAdminSetting(key) {
+            const val = document.getElementById(`setting_${key}`).value.trim();
+            try {
+                await supabaseClient.from('site_settings').update({ value: val, updated_at: new Date().toISOString() }).eq('key', key);
+                showAdminToast('Setting saved!');
+            } catch (err) { showAdminToast(err.message, 'error'); }
+        }
+
+        // ==========================================
+        // LIVE MONITORING PAGE INITIALIZATION
+        // ==========================================
+        function initMonitoringPage() {
+            if (typeof window.zInjectMonitoringUI === 'function') {
+                window.zInjectMonitoringUI();
+            }
+            if (typeof window.zLoadMonitoring === 'function') {
+                window.zLoadMonitoring();
+            }
+        }
+
+        // ==========================================
+        // FINAL ADMIN PAGE INITIALIZATION & ROUTING
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const originalShowAdminPage = window.showAdminPage;
+            
+            // Override page routing to load data specific to each admin page
+            window.showAdminPage = function(pageId) {
+                originalShowAdminPage(pageId);
+                if (pageId === 'monitoring') initMonitoringPage();
+                if (pageId === 'reports') loadAdminReports();
+                if (pageId === 'rules') loadAdminRules();
+                if (pageId === 'settings') loadAdminSettings();
+                if (pageId === 'users') loadAdminUsers();
+                if (pageId === 'sellers') loadAdminSellers();
+                if (pageId === 'products') loadAdminProducts();
+                if (pageId === 'orders') loadAdminOrders();
+            };
+        });
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadAdminSettings = loadAdminSettings;
+        window.saveAdminSetting = saveAdminSetting;
+    </script>
+</body>
+</html> 
