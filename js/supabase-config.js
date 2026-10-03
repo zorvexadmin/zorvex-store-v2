@@ -6,89 +6,83 @@
 // ============================================================
 // PART 0: IMMEDIATE MANIFEST INJECTION
 // ============================================================
-(function ZEarlyManifest() {
-  try {
-    function makeIcon(size) {
-      const c = document.createElement('canvas');
-      c.width = size; c.height = size;
-      const x = c.getContext('2d');
-      const r = size * 0.22;
-      x.fillStyle = '#2563EB';
-      x.beginPath();
-      x.moveTo(r, 0); x.lineTo(size - r, 0);
-      x.quadraticCurveTo(size, 0, size, r);
-      x.lineTo(size, size - r);
-      x.quadraticCurveTo(size, size, size - r, size);
-      x.lineTo(r, size);
-      x.quadraticCurveTo(0, size, 0, size - r);
-      x.lineTo(0, r);
-      x.quadraticCurveTo(0, 0, r, 0);
-      x.closePath(); x.fill();
-      x.fillStyle = '#FFFFFF';
-      x.font = 'bold ' + Math.round(size * 0.6) + 'px Arial, sans-serif';
-      x.textAlign = 'center'; x.textBaseline = 'middle';
-      x.fillText('Z', size / 2, size / 2 + size * 0.03);
-      return c.toDataURL('image/png');
-    }
+        (function ZEarlyManifest() {
+            try {
+                // 1. Detect current page context
+                const path = window.location.pathname.toLowerCase();
+                let appName = 'Zorvex Store';
+                let appShortName = 'Zorvex Store';
+                let startUrl = '/';
+                let themeColor = '#2563eb'; // Blue for Customer
 
-    const i192 = makeIcon(192);
-    const i512 = makeIcon(512);
+                if (path.includes('admin')) {
+                    appName = 'Zorvex Admin';
+                    appShortName = 'Zorvex Admin';
+                    startUrl = '/admin.html';
+                    themeColor = '#1e293b'; // Slate for Admin
+                } else if (path.includes('seller')) {
+                    appName = 'Zorvex Seller';
+                    appShortName = 'Zorvex Seller';
+                    startUrl = '/seller.html';
+                    themeColor = '#f59e0b'; // Amber for Seller
+                }
 
-    const manifest = {
-      name: 'Zorvex Store — Worldwide Store',
-      short_name: 'Zorvex',
-      description: 'Order products from anywhere in the world',
-      start_url: '/',
-      scope: '/',
-      display: 'standalone',
-      background_color: '#ffffff',
-      theme_color: '#2563eb',
-      orientation: 'portrait',
-      icons: [
-        { src: i192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-        { src: i512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-      ]
-    };
+                // 2. Build Manifest using your actual uploaded icons
+                const manifest = {
+                    name: appName,
+                    short_name: appShortName,
+                    description: 'Order products from anywhere in the world',
+                    start_url: startUrl,
+                    scope: '/',
+                    display: 'standalone',
+                    background_color: '#ffffff',
+                    theme_color: themeColor,
+                    orientation: 'portrait',
+                    icons: [
+                        { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                        { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+                    ]
+                };
 
-    const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
+                // 3. Inject Manifest Link dynamically
+                const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
 
-    document.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
-    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(el => el.remove());
-    document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(el => el.remove());
-    document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
+                document.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
+                document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(el => el.remove());
+                document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(el => el.remove());
+                document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
 
-    const mlink = document.createElement('link');
-    mlink.rel = 'manifest'; mlink.href = blobUrl;
-    document.head.appendChild(mlink);
+                const mlink = document.createElement('link');
+                mlink.rel = 'manifest'; mlink.href = blobUrl;
+                document.head.appendChild(mlink);
 
-    const fav = document.createElement('link');
-    fav.rel = 'icon'; fav.type = 'image/png'; fav.href = i192;
-    document.head.appendChild(fav);
+                const fav = document.createElement('link');
+                fav.rel = 'icon'; fav.type = 'image/png'; fav.href = '/icon-192.png';
+                document.head.appendChild(fav);
 
-    const apple = document.createElement('link');
-    apple.rel = 'apple-touch-icon'; apple.href = i192;
-    document.head.appendChild(apple);
+                const apple = document.createElement('link');
+                apple.rel = 'apple-touch-icon'; apple.href = '/icon-192.png';
+                document.head.appendChild(apple);
 
-    const theme = document.createElement('meta');
-    theme.name = 'theme-color'; theme.content = '#2563eb';
-    document.head.appendChild(theme);
+                const theme = document.createElement('meta');
+                theme.name = 'theme-color'; theme.content = themeColor;
+                document.head.appendChild(theme);
 
-    const appleMeta1 = document.createElement('meta');
-    appleMeta1.name = 'apple-mobile-web-app-capable'; appleMeta1.content = 'yes';
-    document.head.appendChild(appleMeta1);
+                const appleMeta1 = document.createElement('meta');
+                appleMeta1.name = 'apple-mobile-web-app-capable'; appleMeta1.content = 'yes';
+                document.head.appendChild(appleMeta1);
 
-    const appleMeta2 = document.createElement('meta');
-    appleMeta2.name = 'apple-mobile-web-app-status-bar-style'; appleMeta2.content = 'black-translucent';
-    document.head.appendChild(appleMeta2);
+                const appleMeta2 = document.createElement('meta');
+                appleMeta2.name = 'apple-mobile-web-app-status-bar-style'; appleMeta2.content = 'black-translucent';
+                document.head.appendChild(appleMeta2);
 
-    const appleMeta3 = document.createElement('meta');
-    appleMeta3.name = 'apple-mobile-web-app-title'; appleMeta3.content = 'Zorvex';
-    document.head.appendChild(appleMeta3);
+                const appleMeta3 = document.createElement('meta');
+                appleMeta3.name = 'apple-mobile-web-app-title'; appleMeta3.content = appShortName;
+                document.head.appendChild(appleMeta3);
 
-    window._zManifestURL = blobUrl;
-    window._zIcons = { i192, i512 };
-  } catch(e) { console.warn('Early manifest failed:', e); }
-})();
+                window._zManifestURL = blobUrl;
+            } catch (e) { console.warn('Early manifest failed:', e); }
+        })();
 
 // ============================================================
 // SUPABASE CLIENT (NEW PROJECT — zorvex-v2)
