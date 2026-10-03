@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zorvex Seller | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' } } } } }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .notranslate { unicode-bidi: normal; }
+        .fade-in { animation: fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .skeleton { animation: skel 1.4s ease-in-out infinite; }
+        @keyframes skel { 0%, 100% { opacity: .6; } 50% { opacity: .3; } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white flex flex-col transition-transform -translate-x-full md:translate-x-0">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 shrink-0">
+            <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white mr-2">
+                <i class="fa-solid fa-store"></i>
+            </div>
+            <span class="font-black text-lg tracking-tight">Zorvex <span class="text-amber-500">Seller</span></span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 pt-2 pb-1">Main Menu</p>
+            <button onclick="showSellerPage('dashboard')" class="seller-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-amber-500 text-white" id="nav-dashboard">
+                <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+            </button>
+            <button onclick="showSellerPage('products')" class="seller-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-products">
+                <i class="fa-solid fa-box w-5"></i> My Products
+            </button>
+            <button onclick="showSellerPage('orders')" class="seller-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-orders">
+                <i class="fa-solid fa-truck w-5"></i> Orders
+            </button>
+            <button onclick="showSellerPage('add_product')" class="seller-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-add_product">
+                <i class="fa-solid fa-plus-circle w-5"></i> Add Product
+            </button>
+            
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 pt-4 pb-1">Management</p>
+            <button onclick="showSellerPage('earnings')" class="seller-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-earnings">
+                <i class="fa-solid fa-wallet w-5"></i> Earnings
+            </button>
+            <button onclick="showSellerPage('rules')" class="seller-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition" id="nav-rules">
+                <i class="fa-solid fa-scroll w-5"></i> Seller Rules
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 shrink-0">
+            <button onclick="window.location.href='index.html'" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-white transition">
+                <i class="fa-solid fa-arrow-left"></i> Back to Store
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- HEADER -->
+        <header class="sticky top-0 z-30 bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 md:px-6 shadow-sm shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSellerSidebar()" class="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 id="pageTitle" class="text-lg font-black text-slate-800">Dashboard</h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <span class="hidden sm:inline-block text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+                    <i class="fa-solid fa-circle text-[8px] text-emerald-500 mr-1"></i> Store Active
+                </span>
+                <div class="relative">
+                    <button id="sellerProfileBtn" onclick="toggleSellerMenu()" class="flex items-center gap-2 focus:outline-none">
+                        <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold" id="sellerInitial">S</div>
+                        <span class="hidden md:inline text-sm font-bold text-slate-700" id="sellerName">Seller</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <div id="sellerProfileMenu" class="hidden absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 fade-in">
+                        <button onclick="signOutSeller()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main id="mainContent" class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 relative">
+            
+            <!-- PAGE: DASHBOARD -->
+            <div id="page-dashboard" class="page">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Total Sales</span>
+                            <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-dollar-sign"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statSellerSales">$0.00</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Total Orders</span>
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-box"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statSellerOrders">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Pending Orders</span>
+                            <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center"><i class="fa-solid fa-clock"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statSellerPending">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">My Products</span>
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-tags"></i></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="statSellerProducts">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="font-black text-slate-800">Recent Orders</h3>
+                        <button onclick="showSellerPage('orders')" class="text-xs font-bold text-amber-600 hover:underline">View All</button>
+                    </div>
+                    <div id="sellerRecentOrders" class="p-5 text-center text-slate-400 text-sm">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: PRODUCTS -->
+            <div id="page-products" class="page hidden"></div>
+            
+            <!-- PAGE: ORDERS -->
+            <div id="page-orders" class="page hidden"></div>
+            
+            <!-- PAGE: ADD PRODUCT -->
+            <div id="page-add_product" class="page hidden"></div>
+            
+            <!-- PAGE: EARNINGS -->
+            <div id="page-earnings" class="page hidden"></div>
+            
+            <!-- PAGE: RULES -->
+            <div id="page-rules" class="page hidden"></div>
+
+        </main>
+    </div>
+
+    <div id="sellerToast" class="fixed bottom-4 right-4 z-[100] hidden px-4 py-2 rounded-lg text-white text-sm shadow-lg transition-opacity duration-300"></div>
+
+      <script>
+        // ==========================================
+        // SELLER AUTHENTICATION & BASE VARIABLES
+        // ==========================================
+        let currentSeller = null;
+        let currentSellerProfile = null;
+        let allSellerProducts = [];
+        let allSellerOrders = [];
+
+        async function checkSellerAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentSeller = session.user;
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', currentSeller.id)
+                .single();
+
+            if (error || !profile) {
+                alert('Profile not found.');
+                await supabaseClient.auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const isSeller = profile.role === 'seller';
+            const isAdmin = window.zorvex.adminRoles.includes(profile.role);
+
+            if (!isSeller && !isAdmin) {
+                alert('Access Denied: You are not a seller.');
+                await supabaseClient.auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentSellerProfile = profile;
+            document.getElementById('sellerName').textContent = profile.shop_name || profile.full_name || 'Seller';
+            document.getElementById('sellerInitial').textContent = (profile.shop_name || profile.full_name || 'S')[0].toUpperCase();
+            
+            loadSellerDashboard();
+        }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function showSellerToast(message, type = 'success') {
+            const toast = document.getElementById('sellerToast');
+            toast.className = `fixed bottom-4 right-4 z-[100] px-4 py-2 rounded-lg text-white text-sm shadow-lg transition-opacity duration-300 ${type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`;
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => { toast.classList.add('hidden'); toast.style.opacity = '1'; }, 300); }, 3000);
+        }
+
+        function formatSellerPrice(usdAmount) {
+            return '$' + Number(usdAmount || 0).toFixed(2);
+        }
+
+        // ==========================================
+        // SIDEBAR & NAVIGATION LOGIC
+        // ==========================================
+        function toggleSellerSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        function showSellerPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            const target = document.getElementById(`page-${pageId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.seller-nav-btn').forEach(btn => {
+                btn.classList.remove('bg-amber-500', 'text-white');
+                btn.classList.add('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+            });
+            const activeNav = document.getElementById(`nav-${pageId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-amber-500', 'text-white');
+                activeNav.classList.remove('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+            }
+
+            const titles = { 
+                dashboard: 'Dashboard', 
+                products: 'My Products', 
+                orders: 'Manage Orders', 
+                add_product: 'Add New Product', 
+                earnings: 'Earnings & Payouts', 
+                rules: 'Seller Rules' 
+            };
+            document.getElementById('pageTitle').textContent = titles[pageId] || 'Seller Panel';
+
+            if (pageId === 'dashboard') loadSellerDashboard();
+            if (pageId === 'products') loadSellerProducts();
+            if (pageId === 'orders') loadSellerOrders();
+            if (pageId === 'add_product') initAddProductPage();
+            if (pageId === 'earnings') loadSellerEarnings();
+            if (pageId === 'rules') loadSellerRules();
+
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+        }
+
+        function toggleSellerMenu() {
+            document.getElementById('sellerProfileMenu').classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('sellerProfileMenu');
+            const btn = document.getElementById('sellerProfileBtn');
+            if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function signOutSeller() {
+            if (confirm('Are you sure you want to sign out?')) {
+                supabaseClient.auth.signOut().then(() => window.location.href = 'index.html');
+            }
+        }
+
+        // ==========================================
+        // PAGE INITIALIZATION
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSellerAuth();
+        });
+      </script> 
+      <script>
+        // ==========================================
+        // SELLER DASHBOARD STATS
+        // ==========================================
+        async function loadSellerDashboard() {
+            try {
+                const { data: products } = await supabaseClient
+                    .from('products')
+                    .select('*')
+                    .eq('seller_id', currentSeller.id);
+
+                const { data: orders, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .eq('seller_id', currentSeller.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allSellerProducts = products || [];
+                allSellerOrders = orders || [];
+
+                const totalSales = allSellerOrders.reduce((sum, o) => sum + (Number(o.seller_payout_usd) || 0), 0);
+                const totalOrders = allSellerOrders.length;
+                const pendingOrders = allSellerOrders.filter(o => ['pending', 'confirmed', 'packaging', 'shipped', 'out_for_delivery'].includes(o.status)).length;
+
+                document.getElementById('statSellerSales').textContent = formatSellerPrice(totalSales);
+                document.getElementById('statSellerOrders').textContent = totalOrders;
+                document.getElementById('statSellerPending').textContent = pendingOrders;
+                document.getElementById('statSellerProducts').textContent = allSellerProducts.length;
+
+                const recentBox = document.getElementById('sellerRecentOrders');
+                if (!allSellerOrders || allSellerOrders.length === 0) {
+                    recentBox.innerHTML = '<p class="text-center text-slate-400 text-sm">No orders yet.</p>';
+                    return;
+                }
+
+                const recent = allSellerOrders.slice(0, 5);
+                recentBox.innerHTML = recent.map(o => `
+                    <div class="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">#${o.order_code || o.id.substring(0, 8)}</p>
+                            <p class="text-[10px] text-slate-500">${o.full_name} · ${new Date(o.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-bold text-amber-600 notranslate">${formatSellerPrice(o.seller_payout_usd || o.total_usd)}</p>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${o.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : o.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'} uppercase">${o.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Seller dashboard error:', err);
+                showSellerToast('Failed to load dashboard', 'error');
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadSellerDashboard = loadSellerDashboard;
+      </script>
+
+      <script>
+        // ==========================================
+        // MY PRODUCTS MANAGEMENT LOGIC
+        // ==========================================
+        async function loadSellerProducts() {
+            const pageBox = document.getElementById('page-products');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
+                        <h3 class="font-black text-slate-800">My Products</h3>
+                        <div class="flex gap-2">
+                            <button onclick="showSellerPage('add_product')" class="text-xs bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fa-solid fa-plus"></i> Add Product
+                            </button>
+                            <button onclick="loadSellerProducts()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fa-solid fa-rotate-right"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold">
+                                <tr>
+                                    <th class="px-5 py-3">Product</th>
+                                    <th class="px-5 py-3">Price</th>
+                                    <th class="px-5 py-3">Stock</th>
+                                    <th class="px-5 py-3">Type</th>
+                                    <th class="px-5 py-3">Status</th>
+                                    <th class="px-5 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sellerProductsTable" class="divide-y divide-slate-100">
+                                <tr><td colspan="6" class="text-center py-8 text-slate-400">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            await fetchSellerProducts();
+        }
+
+        async function fetchSellerProducts() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('products')
+                    .select('*')
+                    .eq('seller_id', currentSeller.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                allSellerProducts = data || [];
+                renderSellerProducts();
+            } catch (err) {
+                showSellerToast('Failed to load products', 'error');
+            }
+        }
+
+        function renderSellerProducts() {
+            const tbody = document.getElementById('sellerProductsTable');
+            if (!tbody) return;
+
+            if (allSellerProducts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">No products found. Add your first product!</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allSellerProducts.map(p => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-5 py-3">
+                        <div class="flex items-center gap-3">
+                            <img src="${p.image_url || 'https://placehold.co/50x50'}" class="w-10 h-10 rounded object-cover border border-slate-200">
+                            <div>
+                                <p class="text-xs font-bold text-slate-800 line-clamp-1 notranslate">${p.title}</p>
+                                <p class="text-[10px] text-slate-500">ID: ${p.id.substring(0,8)}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3 font-bold text-slate-800 notranslate">$${Number(p.price_usd).toFixed(2)}</td>
+                    <td class="px-5 py-3 text-xs font-bold ${p.stock > 0 ? 'text-emerald-600' : 'text-red-600'}">${p.stock || 0}</td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase">${p.product_type || 'OWN'}</span>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${p.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'} uppercase">${p.is_active ? 'Active' : 'Hidden'}</span>
+                    </td>
+                    <td class="px-5 py-3 text-right space-x-2">
+                        <button onclick="editSellerProduct('${p.id}')" class="text-xs font-bold text-blue-600 hover:underline">Edit</button>
+                        <button onclick="deleteSellerProduct('${p.id}')" class="text-xs font-bold text-red-500 hover:underline">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editSellerProduct(productId) {
+            // Redirect to add_product page and pass the ID for editing
+            showSellerPage('add_product');
+            // The add_product logic will pick this up via a global variable or we can trigger it here
+            if (typeof initAddProductPage === 'function') {
+                setTimeout(() => initAddProductPage(productId), 100);
+            }
+        }
+
+        async function deleteSellerProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            try {
+                const { error } = await supabaseClient.from('products').delete().eq('id', productId);
+                if (error) throw error;
+                showSellerToast('Product deleted successfully!');
+                await fetchSellerProducts();
+                loadSellerDashboard(); // Update stats
+            } catch (err) {
+                showSellerToast(err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadSellerProducts = loadSellerProducts;
+        window.editSellerProduct = editSellerProduct;
+        window.deleteSellerProduct = deleteSellerProduct;
+      </script>
+
+      <script>
+        // ==========================================
+        // ADD / EDIT PRODUCT FORM LOGIC
+        // ==========================================
+        function initAddProductPage(productId = null) {
+            const pageBox = document.getElementById('page-add_product');
+            const isEdit = !!productId;
+            const p = isEdit ? allSellerProducts.find(x => x.id === productId) : null;
+
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
+                    <h3 class="font-black text-lg mb-4">${isEdit ? 'Edit Product' : 'Add New Product'}</h3>
+                    <form onsubmit="handleAddProductSubmit(event, '${productId || ''}')" class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">Product Title *</label>
+                            <input id="sp_title" required value="${p?.title || ''}" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Price (USD) *</label>
+                                <input id="sp_price" type="number" step="0.01" required value="${p?.price_usd || ''}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Old Price (USD)</label>
+                                <input id="sp_old_price" type="number" step="0.01" value="${p?.old_price_usd || ''}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Stock *</label>
+                                <input id="sp_stock" type="number" required value="${p?.stock || 999}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Category ID</label>
+                                <input id="sp_category" type="number" value="${p?.category_id || 1}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">Description</label>
+                            <textarea id="sp_desc" rows="4" class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">${p?.description || ''}</textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">Image URL</label>
+                            <input id="sp_image" value="${p?.image_url || ''}" placeholder="https://..." class="notranslate w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">Upload Image (Optional)</label>
+                            <input id="sp_image_file" type="file" accept="image/*" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <input type="checkbox" id="sp_active" ${p?.is_active !== false ? 'checked' : ''} class="w-4 h-4 text-amber-500 rounded">
+                            <label for="sp_active" class="text-xs font-bold text-slate-600">Active / Visible in Store</label>
+                        </div>
+                        <button type="submit" id="sp_submit_btn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl text-sm mt-4 transition">
+                            ${isEdit ? 'Update Product' : 'Create Product'}
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+
+        async function handleAddProductSubmit(event, productId) {
+            event.preventDefault();
+            const btn = document.getElementById('sp_submit_btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                let imageUrl = document.getElementById('sp_image').value.trim();
+                const fileInput = document.getElementById('sp_image_file');
+                
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileName = `${currentSeller.id}-product-${Date.now()}.jpg`;
+                    const { error: uploadError } = await supabaseClient.storage.from('product-images').upload(fileName, file);
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = supabaseClient.storage.from('product-images').getPublicUrl(fileName);
+                    imageUrl = urlData.publicUrl;
+                }
+
+                const productData = {
+                    title: document.getElementById('sp_title').value.trim(),
+                    price_usd: parseFloat(document.getElementById('sp_price').value),
+                    old_price_usd: parseFloat(document.getElementById('sp_old_price').value) || null,
+                    stock: parseInt(document.getElementById('sp_stock').value),
+                    category_id: parseInt(document.getElementById('sp_category').value),
+                    description: document.getElementById('sp_desc').value.trim(),
+                    image_url: imageUrl || null,
+                    is_active: document.getElementById('sp_active').checked,
+                    seller_id: currentSeller.id
+                };
+
+                if (productId) {
+                    const { error } = await supabaseClient.from('products').update(productData).eq('id', productId);
+                    if (error) throw error;
+                    showSellerToast('Product updated successfully!');
+                } else {
+                    const { error } = await supabaseClient.from('products').insert(productData);
+                    if (error) throw error;
+                    showSellerToast('Product created successfully!');
+                }
+
+                await fetchSellerProducts();
+                loadSellerDashboard();
+                showSellerPage('products');
+            } catch (err) {
+                showSellerToast(err.message, 'error');
+                btn.disabled = false; btn.innerHTML = productId ? 'Update Product' : 'Create Product';
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.initAddProductPage = initAddProductPage;
+        window.handleAddProductSubmit = handleAddProductSubmit;
+      </script>
+
+      <script>
+        // ==========================================
+        // SELLER ORDERS MANAGEMENT LOGIC
+        // ==========================================
+        async function loadSellerOrders() {
+            const pageBox = document.getElementById('page-orders');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
+                        <h3 class="font-black text-slate-800">My Orders</h3>
+                        <div class="flex gap-2">
+                            <select id="sellerOrderFilter" onchange="filterSellerOrders()" class="text-xs border border-slate-300 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-500">
+                                <option value="all">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="packaging">Packaging</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="out_for_delivery">Out for Delivery</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            <button onclick="loadSellerOrders()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fa-solid fa-rotate-right"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold">
+                                <tr>
+                                    <th class="px-5 py-3">Order ID</th>
+                                    <th class="px-5 py-3">Customer</th>
+                                    <th class="px-5 py-3">Amount</th>
+                                    <th class="px-5 py-3">Payment</th>
+                                    <th class="px-5 py-3">Status</th>
+                                    <th class="px-5 py-3">Date</th>
+                                    <th class="px-5 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sellerOrdersTable" class="divide-y divide-slate-100">
+                                <tr><td colspan="7" class="text-center py-8 text-slate-400">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            await fetchSellerOrders();
+        }
+
+        async function fetchSellerOrders() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .eq('seller_id', currentSeller.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                allSellerOrders = data || [];
+                renderSellerOrders();
+            } catch (err) {
+                showSellerToast('Failed to load orders', 'error');
+            }
+        }
+
+        function renderSellerOrders() {
+            const tbody = document.getElementById('sellerOrdersTable');
+            if (!tbody) return;
+
+            const filter = document.getElementById('sellerOrderFilter')?.value || 'all';
+            const filtered = filter === 'all' ? allSellerOrders : allSellerOrders.filter(o => o.status === filter);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">No orders found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(o => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-5 py-3 font-bold text-amber-600 text-xs">#${o.order_code || o.id.substring(0,8)}</td>
+                    <td class="px-5 py-3">
+                        <p class="text-xs font-bold text-slate-800">${o.full_name}</p>
+                        <p class="text-[10px] text-slate-500">${o.phone}</p>
+                    </td>
+                    <td class="px-5 py-3 font-bold text-slate-800 notranslate">${formatSellerPrice(o.seller_payout_usd || o.total_usd)}</td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${o.payment_method === 'cod' ? 'bg-slate-100 text-slate-600' : 'bg-blue-100 text-blue-700'} uppercase">${o.payment_method}</span>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${o.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : o.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'} uppercase">${o.status}</span>
+                    </td>
+                    <td class="px-5 py-3 text-[10px] text-slate-500">${new Date(o.created_at).toLocaleDateString()}</td>
+                    <td class="px-5 py-3 text-right">
+                        <button onclick="openSellerOrderDetails('${o.id}')" class="text-xs font-bold text-amber-600 hover:underline">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterSellerOrders() {
+            renderSellerOrders();
+        }
+
+        // ==========================================
+        // ORDER DETAILS MODAL
+        // ==========================================
+        function openSellerOrderDetails(orderId) {
+            const o = allSellerOrders.find(x => x.id === orderId);
+            if (!o) return;
+
+            const modalHtml = `
+                <div id="sellerOrderModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-3 fade-in">
+                    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-lg">Order Details</h3>
+                            <button onclick="document.getElementById('sellerOrderModal').remove()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="space-y-3 text-sm">
+                            <p><b>Order ID:</b> <span class="text-amber-600">#${o.order_code || o.id.substring(0,8)}</span></p>
+                            <p><b>Customer:</b> ${o.full_name}</p>
+                            <p><b>Phone:</b> ${o.phone}</p>
+                            <p><b>Address:</b> ${o.address}, ${o.ship_district || ''}, ${o.ship_country}</p>
+                            <p><b>Payment Method:</b> ${o.payment_method}</p>
+                            ${o.payment_txn_id ? `<p><b>Transaction ID:</b> ${o.payment_txn_id}</p>` : ''}
+                            <p><b>My Payout:</b> <span class="font-bold text-emerald-600">${formatSellerPrice(o.seller_payout_usd)}</span></p>
+                            <p><b>Status:</b> <span class="font-bold uppercase text-amber-600">${o.status}</span></p>
+                            <p><b>Date:</b> ${new Date(o.created_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('sellerOrderModal').classList.remove('hidden');
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadSellerOrders = loadSellerOrders;
+        window.filterSellerOrders = filterSellerOrders;
+        window.openSellerOrderDetails = openSellerOrderDetails;
+      </script>
+
+      <script>
+        // ==========================================
+        // SELLER EARNINGS & PAYOUTS LOGIC
+        // ==========================================
+        async function loadSellerEarnings() {
+            const pageBox = document.getElementById('page-earnings');
+            pageBox.innerHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <p class="text-xs font-bold text-slate-500 uppercase mb-1">Total Earnings</p>
+                        <p class="text-2xl font-black text-emerald-600 notranslate" id="earnTotal">$0.00</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <p class="text-xs font-bold text-slate-500 uppercase mb-1">Pending Payout</p>
+                        <p class="text-2xl font-black text-amber-600 notranslate" id="earnPending">$0.00</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                        <p class="text-xs font-bold text-slate-500 uppercase mb-1">Total Orders</p>
+                        <p class="text-2xl font-black text-slate-800 notranslate" id="earnOrders">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-200">
+                        <h3 class="font-black text-slate-800">Transaction History</h3>
+                    </div>
+                    <div id="sellerEarningsList" class="p-5 text-center text-slate-400 text-sm">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            await fetchSellerEarnings();
+        }
+
+        async function fetchSellerEarnings() {
+            try {
+                const { data: orders, error } = await supabaseClient
+                    .from('orders')
+                    .select('*')
+                    .eq('seller_id', currentSeller.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const totalEarnings = orders.filter(o => o.status === 'delivered').reduce((sum, o) => sum + (Number(o.seller_payout_usd) || 0), 0);
+                const pendingPayout = orders.filter(o => ['pending', 'confirmed', 'packaging', 'shipped', 'out_for_delivery'].includes(o.status)).reduce((sum, o) => sum + (Number(o.seller_payout_usd) || 0), 0);
+
+                document.getElementById('earnTotal').textContent = formatSellerPrice(totalEarnings);
+                document.getElementById('earnPending').textContent = formatSellerPrice(pendingPayout);
+                document.getElementById('earnOrders').textContent = orders.length;
+
+                const box = document.getElementById('sellerEarningsList');
+                if (orders.length === 0) {
+                    box.innerHTML = '<p class="text-center text-slate-400 text-sm">No transactions yet.</p>';
+                    return;
+                }
+
+                box.innerHTML = orders.slice(0, 10).map(o => `
+                    <div class="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
+                        <div>
+                            <p class="text-xs font-bold text-slate-800">#${o.order_code || o.id.substring(0,8)}</p>
+                            <p class="text-[10px] text-slate-500">${new Date(o.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-bold ${o.status === 'delivered' ? 'text-emerald-600' : 'text-amber-600'} notranslate">${formatSellerPrice(o.seller_payout_usd)}</p>
+                            <span class="text-[10px] font-bold uppercase ${o.status === 'delivered' ? 'text-emerald-600' : 'text-slate-400'}">${o.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                showSellerToast('Failed to load earnings', 'error');
+            }
+        }
+
+        // ==========================================
+        // SELLER RULES LOGIC
+        // ==========================================
+        async function loadSellerRules() {
+            const pageBox = document.getElementById('page-rules');
+            pageBox.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
+                    <h3 class="font-black text-lg mb-4">Seller Rules & Guidelines</h3>
+                    <div id="sellerRulesList" class="space-y-4 text-sm">
+                        <p class="text-center text-slate-400 py-6">Loading...</p>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const { data: rules, error } = await supabaseClient
+                    .from('rules')
+                    .select('*')
+                    .eq('audience', 'seller')
+                    .eq('is_active', true)
+                    .order('sort_order');
+
+                const box = document.getElementById('sellerRulesList');
+                if (error || !rules || rules.length === 0) {
+                    box.innerHTML = '<p class="text-center text-slate-400 py-6">No rules available.</p>';
+                    return;
+                }
+
+                box.innerHTML = rules.map(r => `
+                    <div class="border-b border-slate-100 pb-3 last:border-0">
+                        <h4 class="text-sm font-bold text-slate-800">${r.title}</h4>
+                        <p class="text-xs text-slate-600 mt-1">${r.content}</p>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('sellerRulesList').innerHTML = '<p class="text-center text-red-400 py-6">Failed to load rules.</p>';
+            }
+        }
+
+        // ==========================================
+        // GLOBAL EXPORTS
+        // ==========================================
+        window.loadSellerEarnings = loadSellerEarnings;
+        window.loadSellerRules = loadSellerRules;
+      </script>
+
+  </body>
+</html>
